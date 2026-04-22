@@ -48,18 +48,32 @@ export default function HomePage() {
     <>
       <Navbar />
 
-      <main className="min-h-screen" style={{ background: "#ffffff" }}>
+      <main className="min-h-screen" style={{ background: "#0a0e17" }}>
         {/* ── Hero ── */}
-        <section className="pt-28 pb-14 relative overflow-hidden" style={{ background: "#fafafa" }}>
+        <section className="pt-28 pb-14 relative overflow-hidden" style={{ background: "#0f1729" }}>
+          {/* Background gradient orbs */}
+          <div
+            className="absolute top-0 left-1/4 w-96 h-96 rounded-full opacity-20 blur-3xl"
+            style={{ background: "radial-gradient(circle, rgba(6,214,160,0.3) 0%, transparent 70%)" }}
+          />
+          <div
+            className="absolute bottom-0 right-1/4 w-80 h-80 rounded-full opacity-15 blur-3xl"
+            style={{ background: "radial-gradient(circle, rgba(131,56,236,0.3) 0%, transparent 70%)" }}
+          />
+
           <div className="page-container text-center relative z-10">
             {/* Badge */}
             <div className="flex justify-center mb-6">
               <div
                 className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold"
                 style={{
-                  background: "rgba(255,60,0,0.06)",
-                  border: "1px solid rgba(255,60,0,0.12)",
-                  color: "#ff3c00",
+                  background: "rgba(6,214,160,0.08)",
+                  border: "1px solid rgba(6,214,160,0.2)",
+                  color: "#06d6a0",
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                  fontSize: "0.65rem",
                 }}
               >
                 <Sparkles size={12} />
@@ -68,31 +82,39 @@ export default function HomePage() {
             </div>
 
             {/* Headline */}
-            <h1 className="section-title mb-4" style={{ color: "#111827" }}>
+            <h1 className="section-title mb-4" style={{ color: "#f0f4f8" }}>
               This Week&apos;s{" "}
-              <span style={{ color: "#ff3c00" }}>
+              <span
+                style={{
+                  background: "linear-gradient(135deg, #06d6a0, #8338ec)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
                 Featured Tips
               </span>
             </h1>
-            <p className="text-base md:text-lg max-w-lg mx-auto mb-12 leading-relaxed" style={{ color: "#6b7280" }}>
+            <p className="text-base md:text-lg max-w-lg mx-auto mb-12 leading-relaxed" style={{ color: "#94a3b8" }}>
               Unlock premium predictions with guaranteed odds. Expert analysis, verified results, instant access.
             </p>
 
             {/* Stats row */}
             <div className="flex items-center justify-center gap-4 md:gap-6 mb-14">
               {[
-                { icon: <Trophy size={18} />, label: "Win Rate", value: "87%", color: "#10b981" },
-                { icon: <TrendingUp size={18} />, label: "Predictions", value: "500+", color: "#ff3c00" },
+                { icon: <Trophy size={18} />, label: "Win Rate", value: "87%", color: "#06d6a0" },
+                { icon: <TrendingUp size={18} />, label: "Predictions", value: "500+", color: "#8338ec" },
                 { icon: <Shield size={18} />, label: "Verified", value: "100%", color: "#f59e0b" },
               ].map((stat) => (
                 <div
                   key={stat.label}
-                  className="flex flex-col items-center gap-1 px-5 py-4 rounded-2xl transition-all duration-300 hover:scale-105"
+                  className="flex flex-col items-center gap-1 px-5 py-4 transition-all duration-300 hover:scale-105"
                   style={{
-                    background: "#ffffff",
-                    border: "1px solid rgba(0,0,0,0.06)",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04)",
+                    background: "rgba(17,24,39,0.6)",
+                    border: "1px solid rgba(255,255,255,0.06)",
+                    boxShadow: "0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)",
+                    backdropFilter: "blur(16px)",
                     minWidth: "100px",
+                    borderRadius: "16px",
                   }}
                 >
                   <div style={{ color: stat.color }}>{stat.icon}</div>
@@ -102,7 +124,7 @@ export default function HomePage() {
                   >
                     {stat.value}
                   </span>
-                  <span className="text-[10px] font-semibold tracking-wider uppercase" style={{ color: "#9ca3af" }}>
+                  <span className="text-[10px] font-semibold tracking-wider uppercase" style={{ color: "#64748b", fontFamily: "'Space Grotesk', sans-serif" }}>
                     {stat.label}
                   </span>
                 </div>
@@ -110,15 +132,15 @@ export default function HomePage() {
             </div>
 
             {/* Filter bar label */}
-            <div className="flex items-center justify-center gap-2 text-sm mb-4" style={{ color: "#9ca3af" }}>
+            <div className="flex items-center justify-center gap-2 text-sm mb-4" style={{ color: "#64748b" }}>
               <Filter size={14} />
-              <span className="font-medium">Filter by odds</span>
+              <span className="font-medium uppercase text-xs tracking-wider" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Filter by odds</span>
             </div>
 
             {/* Filter pills */}
             <div className="relative">
               <div className="pointer-events-none absolute right-0 top-0 h-full w-8 z-10 md:hidden"
-                style={{ background: "linear-gradient(to right, transparent, #fafafa)" }} />
+                style={{ background: "linear-gradient(to right, transparent, #0f1729)" }} />
               <div className="flex items-center gap-2 overflow-x-auto md:flex-wrap md:justify-center md:overflow-visible
                 px-1 pb-1 scroll-smooth
                 scrollbar-none [&::-webkit-scrollbar]:hidden"
@@ -128,21 +150,25 @@ export default function HomePage() {
                   <button
                     key={tab.value}
                     onClick={() => handleFilter(tab.value)}
-                    className="flex-shrink-0 text-sm font-semibold px-5 py-2 rounded-xl border transition-all duration-300"
-                    style={
-                      activeFilter === tab.value
+                    className="flex-shrink-0 text-xs font-semibold px-5 py-2 border transition-all duration-300"
+                    style={{
+                      fontFamily: "'Space Grotesk', sans-serif",
+                      letterSpacing: "0.04em",
+                      textTransform: "uppercase",
+                      borderRadius: "10px",
+                      ...(activeFilter === tab.value
                         ? {
-                            background: "#ff3c00",
-                            color: "#ffffff",
-                            borderColor: "#ff3c00",
-                            boxShadow: "0 4px 12px rgba(255,60,0,0.2)",
-                          }
+                          background: "linear-gradient(135deg, #06d6a0, #059d79)",
+                          color: "#0a0e17",
+                          borderColor: "transparent",
+                          boxShadow: "0 0 20px rgba(6,214,160,0.3)",
+                        }
                         : {
-                            background: "#ffffff",
-                            color: "#6b7280",
-                            borderColor: "rgba(0,0,0,0.08)",
-                          }
-                    }
+                          background: "rgba(17,24,39,0.6)",
+                          color: "#94a3b8",
+                          borderColor: "rgba(255,255,255,0.08)",
+                        }),
+                    }}
                   >
                     {tab.label}
                   </button>
@@ -153,24 +179,26 @@ export default function HomePage() {
         </section>
 
         {/* ── Cards Grid ── */}
-        <section className="pb-20 relative z-10" style={{ background: "#ffffff" }}>
+        <section className="pb-20 relative z-10" style={{ background: "#0a0e17" }}>
           <div className="page-container pt-10">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-24 gap-4">
                 <div
-                  className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                  className="w-16 h-16 flex items-center justify-center"
                   style={{
-                    background: "rgba(255,60,0,0.06)",
-                    border: "1px solid rgba(255,60,0,0.12)",
+                    background: "rgba(6,214,160,0.08)",
+                    border: "1px solid rgba(6,214,160,0.2)",
+                    borderRadius: "16px",
+                    boxShadow: "0 0 24px rgba(6,214,160,0.15)",
                   }}
                 >
-                  <Loader2 size={28} style={{ color: "#ff3c00" }} className="animate-spin" />
+                  <Loader2 size={28} style={{ color: "#06d6a0" }} className="animate-spin" />
                 </div>
-                <p style={{ color: "#9ca3af" }} className="text-sm">Loading predictions...</p>
+                <p style={{ color: "#64748b" }} className="text-sm">Loading predictions...</p>
               </div>
             ) : error ? (
               <div className="text-center py-24">
-                <p className="text-red-500 mb-4">{error}</p>
+                <p className="text-red-400 mb-4">{error}</p>
                 <button
                   onClick={() => fetchPredictions(activeFilter)}
                   className="btn-outline-gold"
@@ -181,16 +209,17 @@ export default function HomePage() {
             ) : predictions.length === 0 ? (
               <div className="text-center py-24">
                 <div
-                  className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
+                  className="w-16 h-16 flex items-center justify-center mx-auto mb-5"
                   style={{
-                    background: "#f7f7f8",
-                    border: "1px solid rgba(0,0,0,0.06)",
+                    background: "rgba(17,24,39,0.6)",
+                    border: "1px solid rgba(255,255,255,0.06)",
+                    borderRadius: "16px",
                   }}
                 >
-                  <CalendarX2 size={28} style={{ color: "#9ca3af" }} />
+                  <CalendarX2 size={28} style={{ color: "#64748b" }} />
                 </div>
-                <p className="text-lg mb-2 font-display font-semibold" style={{ color: "#374151" }}>No predictions available</p>
-                <p className="text-sm" style={{ color: "#9ca3af" }}>Check back soon — new tips are being prepared.</p>
+                <p className="text-lg mb-2 font-display font-semibold" style={{ color: "#f0f4f8" }}>No predictions available</p>
+                <p className="text-sm" style={{ color: "#64748b" }}>Check back soon — new tips are being prepared.</p>
               </div>
             ) : (
               <>
@@ -216,16 +245,29 @@ export default function HomePage() {
         </section>
 
         {/* ── Trust Section ── */}
-        <section className="py-10 md:py-20 relative z-10" style={{ background: "#fafafa" }}>
+        <section className="py-10 md:py-20 relative z-10" style={{ background: "#0f1729" }}>
+          {/* Gradient divider */}
+          <div
+            className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-px"
+            style={{ background: "linear-gradient(90deg, transparent, rgba(6,214,160,0.3), rgba(131,56,236,0.3), transparent)" }}
+          />
           <div className="page-container text-center">
             <h2
               className="font-display font-bold mb-2 md:mb-3"
-              style={{ fontSize: "clamp(1.4rem,5vw,2.8rem)", letterSpacing: "-0.03em", color: "#111827" }}
+              style={{ fontSize: "clamp(1.4rem,5vw,2.8rem)", letterSpacing: "-0.02em", color: "#f0f4f8" }}
             >
               Why Trust{" "}
-              <span style={{ color: "#ff3c00" }}>Sure Strike Tips?</span>
+              <span
+                style={{
+                  background: "linear-gradient(135deg, #06d6a0, #8338ec)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
+                Sure Strike Tips?
+              </span>
             </h2>
-            <p className="text-xs md:text-sm max-w-md mx-auto mb-6 md:mb-14 leading-relaxed" style={{ color: "#9ca3af" }}>
+            <p className="text-xs md:text-sm max-w-md mx-auto mb-6 md:mb-14 leading-relaxed" style={{ color: "#64748b" }}>
               Expert-verified predictions. Secure payments via Paystack. Instant access.
             </p>
             {/* 3-col grid on all sizes */}
@@ -235,45 +277,55 @@ export default function HomePage() {
                   icon: <BarChart2 size={20} />,
                   title: "Expert Analysis",
                   desc: "Statistic-driven predictions backed by deep match research",
-                  color: "#ff3c00",
-                  bg: "rgba(255,60,0,0.06)",
+                  color: "#06d6a0",
+                  bg: "rgba(6,214,160,0.1)",
+                  borderColor: "rgba(6,214,160,0.2)",
+                  glow: "rgba(6,214,160,0.1)",
                 },
                 {
                   icon: <ShieldCheck size={20} />,
                   title: "Secure Payments",
                   desc: "Paystack-powered payments — safe and instant",
-                  color: "#10b981",
-                  bg: "rgba(16,185,129,0.06)",
+                  color: "#8338ec",
+                  bg: "rgba(131,56,236,0.1)",
+                  borderColor: "rgba(131,56,236,0.2)",
+                  glow: "rgba(131,56,236,0.1)",
                 },
                 {
                   icon: <Zap size={20} />,
                   title: "Instant Access",
                   desc: "Unlock your prediction immediately after payment",
                   color: "#f59e0b",
-                  bg: "rgba(245,158,11,0.06)",
+                  bg: "rgba(245,158,11,0.1)",
+                  borderColor: "rgba(245,158,11,0.2)",
+                  glow: "rgba(245,158,11,0.1)",
                 },
               ].map((item) => (
                 <div
                   key={item.title}
-                  className="flex flex-col items-center text-center p-3 md:p-7 rounded-xl md:rounded-2xl transition-all duration-300 hover:-translate-y-1 md:hover:-translate-y-2 group"
+                  className="flex flex-col items-center text-center p-3 md:p-7 transition-all duration-300 hover:-translate-y-1 md:hover:-translate-y-2 group"
                   style={{
-                    background: "#ffffff",
-                    border: "1px solid rgba(0,0,0,0.06)",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.04)",
+                    background: "rgba(17,24,39,0.6)",
+                    border: `1px solid ${item.borderColor}`,
+                    boxShadow: `0 4px 24px rgba(0,0,0,0.3), 0 0 20px ${item.glow}`,
+                    backdropFilter: "blur(16px)",
+                    borderRadius: "16px",
                   }}
                 >
                   <div
-                    className="w-10 h-10 md:w-14 md:h-14 rounded-xl flex items-center justify-center mb-2 md:mb-4 transition-all duration-300 group-hover:scale-110"
+                    className="w-10 h-10 md:w-14 md:h-14 flex items-center justify-center mb-2 md:mb-4 transition-all duration-300 group-hover:scale-110"
                     style={{
                       background: item.bg,
                       color: item.color,
+                      borderRadius: "12px",
+                      border: `1px solid ${item.borderColor}`,
                     }}
                   >
                     {item.icon}
                   </div>
                   <div className="min-w-0">
-                    <h3 className="font-display font-bold text-[11px] md:text-sm mb-0.5 md:mb-2 tracking-wide" style={{ color: "#111827" }}>{item.title}</h3>
-                    <p className="text-[10px] md:text-xs leading-relaxed hidden md:block" style={{ color: "#9ca3af" }}>{item.desc}</p>
+                    <h3 className="font-display font-bold text-[11px] md:text-sm mb-0.5 md:mb-2 tracking-wide uppercase" style={{ color: "#f0f4f8" }}>{item.title}</h3>
+                    <p className="text-[10px] md:text-xs leading-relaxed hidden md:block" style={{ color: "#64748b" }}>{item.desc}</p>
                   </div>
                 </div>
               ))}

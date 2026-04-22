@@ -36,15 +36,7 @@ expect "# " {
 }
 
 expect "# " {
-    send {cat > /var/www/surestriketips/backend/.env << 'ENV'
-PORT=5002
-PAYSTACK_SECRET_KEY=sk_test_129ca3e1eda9cff4cdecb22d73649c26ecfed50f
-ADMIN_TOKEN=surestriketips-admin-2024
-CLIENT_URL=*
-SUPABASE_URL=
-SUPABASE_SERVICE_KEY=
-ENV
-}
+    send "cat > /var/www/surestriketips/backend/.env << 'ENV'\nPORT=5002\nPAYSTACK_SECRET_KEY=$env(PAYSTACK_SK)\nADMIN_TOKEN=surestriketips-admin-2024\nCLIENT_URL=*\nSUPABASE_URL=\nSUPABASE_SERVICE_KEY=\nENV\n\r"
 }
 
 expect "# " {
