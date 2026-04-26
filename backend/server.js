@@ -200,8 +200,13 @@ const db = {
   },
   async deletePrediction(id) {
     if (supabase) {
-      const { data, error } = await supabase.from('predictions').delete().eq('id', id).select().single();
-      return error ? null : toP(data);
+      // First check the record exists
+      const { data: existing, error: fetchErr } = await supabase.from('predictions').select('id').eq('id', id).single();
+      if (fetchErr || !existing) return null;
+      // Now delete it
+      const { error } = await supabase.from('predictions').delete().eq('id', id);
+      if (error) throw error;
+      return true; // deleted successfully
     }
     const idx = memPredictions.findIndex(p => p._id === id);
     return idx === -1 ? null : memPredictions.splice(idx, 1)[0];
