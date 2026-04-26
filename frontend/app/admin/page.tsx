@@ -212,6 +212,7 @@ function SlipModal({ editing, initial, onSave, onClose, saving, token }: {
   const [proofPreview, setProofPreview] = useState(initial.proofImageUrl || "");
   const [uploading, setUploading] = useState(false);
   const [uploadingProof, setUploadingProof] = useState(false);
+  const [lightbox, setLightbox] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const proofFileRef = useRef<HTMLInputElement>(null);
   const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -262,13 +263,22 @@ function SlipModal({ editing, initial, onSave, onClose, saving, token }: {
           <div><label className="admin-label">Tips (one per line)</label><textarea name="tips" value={form.tips} onChange={onChange} rows={3} placeholder={"Arsenal to win\nBoth teams to score"} className="admin-input resize-y min-h-[80px] text-xs" /></div>
           <div>
             <label className="admin-label">Bet Slip Image</label>
-            <div className="flex items-center gap-3">
-              <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} className="admin-btn-primary flex items-center gap-2 text-sm disabled:opacity-60"><Upload size={14} /> {uploading ? "Uploading…" : "Choose Image"}</button>
+            <div className="flex items-center gap-3 mb-3">
+              <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} className="admin-btn-primary flex items-center gap-2 text-sm disabled:opacity-60"><Upload size={14} /> {uploading ? "Uploading…" : imgPreview && !imgUploadError ? "Replace Image" : "Choose Image"}</button>
               <span className="text-xs" style={{ color: "#78716c" }}>{uploading ? "Uploading…" : imgPreview && !imgUploadError ? "✅ Uploaded" : "No image"}</span>
               <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={onFile} />
             </div>
-            {imgUploadError && <p className="mt-2 text-red-400 text-xs">❌ {imgUploadError}</p>}
-            {imgPreview && !imgUploadError && (<div className="mt-3 relative inline-block">{/* eslint-disable-next-line @next/next/no-img-element */}<img src={imgPreview} alt="Preview" className="h-28 object-cover" style={{ borderRadius: "6px", border: "1px solid rgba(201,168,76,0.08)" }} /><button type="button" onClick={() => { setImgPreview(""); setImgUploadError(""); setForm(p => ({ ...p, imageUrl: "" })); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"><X size={10} /></button></div>)}
+            {imgUploadError && <p className="text-red-400 text-xs">❌ {imgUploadError}</p>}
+            {imgPreview && !imgUploadError && (
+              <div className="relative rounded-md overflow-hidden" style={{ border: "1px solid rgba(201,168,76,0.15)", background: "rgba(0,0,0,0.3)" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={imgPreview} alt="Bet Slip Preview" className="w-full object-contain max-h-64 cursor-zoom-in" onClick={() => setLightbox(imgPreview)} />
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity pointer-events-none" style={{ background: "rgba(0,0,0,0.4)" }}>
+                  <span className="text-white text-xs font-semibold px-3 py-1 rounded-full" style={{ background: "rgba(201,168,76,0.8)" }}>Click to expand</span>
+                </div>
+                <button type="button" onClick={() => { setImgPreview(""); setImgUploadError(""); setForm(p => ({ ...p, imageUrl: "" })); }} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-lg"><X size={12} /></button>
+              </div>
+            )}
           </div>
           {form.status === "completed" && (
             <div className="p-4 space-y-3" style={{ background: "rgba(34,197,94,0.03)", border: "1px solid rgba(34,197,94,0.1)", borderRadius: "6px" }}>
@@ -279,7 +289,13 @@ function SlipModal({ editing, initial, onSave, onClose, saving, token }: {
                 <input ref={proofFileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={onProofFile} />
               </div>
               {proofUploadError && <p className="text-red-400 text-xs">❌ {proofUploadError}</p>}
-              {proofPreview && !proofUploadError && (<div className="relative inline-block">{/* eslint-disable-next-line @next/next/no-img-element */}<img src={proofPreview} alt="Proof" className="h-28 object-cover" style={{ borderRadius: "6px", border: "1px solid rgba(34,197,94,0.15)" }} /><button type="button" onClick={() => { setProofPreview(""); setProofUploadError(""); setForm(p => ({ ...p, proofImageUrl: "" })); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"><X size={10} /></button></div>)}
+              {proofPreview && !proofUploadError && (
+                <div className="relative rounded-md overflow-hidden mt-2" style={{ border: "1px solid rgba(34,197,94,0.2)", background: "rgba(0,0,0,0.3)" }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={proofPreview} alt="Proof Preview" className="w-full object-contain max-h-52 cursor-zoom-in" onClick={() => setLightbox(proofPreview)} />
+                  <button type="button" onClick={() => { setProofPreview(""); setProofUploadError(""); setForm(p => ({ ...p, proofImageUrl: "" })); }} className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-lg"><X size={12} /></button>
+                </div>
+              )}
             </div>
           )}
           <div className="flex gap-3 pt-2">
@@ -288,6 +304,13 @@ function SlipModal({ editing, initial, onSave, onClose, saving, token }: {
           </div>
         </form>
       </div>
+      {lightbox && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" onClick={() => setLightbox(null)} style={{ background: "rgba(0,0,0,0.92)" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={lightbox} alt="Full preview" className="max-w-full max-h-full object-contain rounded-lg shadow-2xl" style={{ maxWidth: "90vw", maxHeight: "90vh" }} />
+          <button onClick={() => setLightbox(null)} className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white rounded-full w-10 h-10 flex items-center justify-center transition-colors"><X size={20} /></button>
+        </div>
+      )}
     </div>
   );
 }
