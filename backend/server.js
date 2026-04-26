@@ -262,20 +262,40 @@ const db = {
   },
   async stats() {
     if (supabase) {
-      const [{ count:total }, { count:active }, { count:completed }, { data:payments }] = await Promise.all([
+      // Aggregate revenue + count directly in DB — avoids PostgREST 1000-row cap
+      const [
+        { count:total },
+        { count:active },
+        { count:completed },
+        { count:salesCount },
+        { data:amountRows },
+        { data:recentRows },
+      ] = await Promise.all([
         supabase.from('predictions').select('*',{count:'exact',head:true}),
         supabase.from('predictions').select('*',{count:'exact',head:true}).eq('status','active'),
         supabase.from('predictions').select('*',{count:'exact',head:true}).eq('status','completed'),
-        supabase.from('payments').select('*').eq('status','success'),
+        // Count of successful transactions
+        supabase.from('payments').select('*',{count:'exact',head:true}).eq('status','success'),
+        // Fetch only the amount column — no row cap workaround via a high limit
+        supabase.from('payments').select('amount').eq('status','success').limit(100000),
+        // Only last 20 records for the activity feed
+        supabase.from('payments').select('*').eq('status','success')
+          .order('created_at',{ascending:false}).limit(20),
       ]);
-      return { total, active, completed, payments:payments.map(toMoney) };
+      const totalRevenue = (amountRows||[]).reduce((s,r)=>s+(r.amount||0), 0);
+      const recentPayments = (recentRows||[]).map(toMoney);
+      return { total, active, completed, totalRevenue, salesCount, recentPayments };
     }
     const payments = memPayments.filter(p => p.status==='success');
+    const totalRevenue = payments.reduce((s,p)=>s+(p.amount||0),0);
+    const recentPayments = [...payments].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,20);
     return {
       total:memPredictions.length,
       active:memPredictions.filter(p=>p.status==='active').length,
       completed:memPredictions.filter(p=>p.status==='completed').length,
-      payments,
+      totalRevenue,
+      salesCount: payments.length,
+      recentPayments,
     };
   },
 };
@@ -599,15 +619,14 @@ app.get('/api/admin/payments', adminAuth, async (req, res) => {
 
 app.get('/api/admin/stats', adminAuth, async (req, res) => {
   try {
-    const { total, active, completed, payments } = await db.stats();
-    const totalRevenue = payments.reduce((s,p) => s+(p.amount||0), 0);
-    const recentActivity = [...payments]
-      .sort((a,b) => new Date(b.createdAt)-new Date(a.createdAt)).slice(0,20)
-      .map(p => ({ _id:p._id, email:p.email, predictionTitle:p.predictionTitle||'—',
-        amount:p.amount, currency:p.currency||'GHS', status:p.status, createdAt:p.createdAt }));
+    const { total, active, completed, totalRevenue, salesCount, recentPayments } = await db.stats();
+    const recentActivity = (recentPayments||[]).map(p => ({
+      _id:p._id, email:p.email, predictionTitle:p.predictionTitle||'—',
+      amount:p.amount, currency:p.currency||'GHS', status:p.status, createdAt:p.createdAt,
+    }));
     res.json({ success:true, data:{
       totalSlips:total, activeSlips:active, completedSlips:completed,
-      totalRevenue, totalSales:payments.length, recentActivity,
+      totalRevenue, totalSales:salesCount, recentActivity,
     }});
   } catch (err) { safeError(res, 500, 'Failed to load stats', err); }
 });
