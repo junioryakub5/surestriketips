@@ -203,10 +203,12 @@ const db = {
       // First check the record exists
       const { data: existing, error: fetchErr } = await supabase.from('predictions').select('id').eq('id', id).single();
       if (fetchErr || !existing) return null;
-      // Now delete it
+      // Delete linked payments first (foreign key constraint)
+      await supabase.from('payments').delete().eq('prediction_id', id);
+      // Now delete the prediction
       const { error } = await supabase.from('predictions').delete().eq('id', id);
       if (error) throw error;
-      return true; // deleted successfully
+      return true;
     }
     const idx = memPredictions.findIndex(p => p._id === id);
     return idx === -1 ? null : memPredictions.splice(idx, 1)[0];
