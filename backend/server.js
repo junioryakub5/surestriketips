@@ -13,6 +13,9 @@ const app  = express();
 const PORT = process.env.PORT || 5003;
 const IS_PROD = process.env.NODE_ENV === 'production';
 
+// Trust reverse proxy (nginx/Cloudflare) — required for rate limiting & real IPs
+app.set('trust proxy', 1);
+
 // ─── Security: Helmet headers ─────────────────────────────────────────────────
 app.use(helmet({
   contentSecurityPolicy: false, // Let Vercel/Next handle CSP
@@ -446,12 +449,24 @@ app.post('/api/payment/verify', paymentLimiter, async (req, res) => {
     }
 
     const accessToken = uuidv4();
-    await db.createPayment({
-      predictionId, predictionTitle:prediction.match, reference,
-      email:(email||txn.customer?.email||'').toLowerCase().trim(),
-      amount:txn.amount/100, currency:txn.currency||'GHS',
-      status:'success', accessToken,
-    });
+    try {
+      await db.createPayment({
+        predictionId, predictionTitle:prediction.match, reference,
+        email:(email||txn.customer?.email||'').toLowerCase().trim(),
+        amount:txn.amount/100, currency:txn.currency||'GHS',
+        status:'success', accessToken,
+      });
+    } catch (insertErr) {
+      // Race condition: another request already inserted this reference
+      if (insertErr?.message?.includes('unique constraint') || insertErr?.code === '23505') {
+        const saved = await db.findPayment({ reference, status:'success' });
+        if (saved) {
+          console.log('Verify: duplicate race resolved for ref:', reference);
+          return res.json({ success:true, reference:saved.reference, accessToken:saved.accessToken });
+        }
+      }
+      throw insertErr;
+    }
 
     console.log('Payment verified OK — ref:', reference, 'amount:', txn.amount/100);
     res.json({ success:true, reference, accessToken });
