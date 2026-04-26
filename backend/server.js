@@ -632,6 +632,8 @@ app.get('/api/admin/payments', adminAuth, async (req, res) => {
   } catch (err) { safeError(res, 500, 'Failed to load payments', err); }
 });
 
+const REVENUE_OFFSET = parseFloat(process.env.REVENUE_OFFSET || '0');
+
 app.get('/api/admin/stats', adminAuth, async (req, res) => {
   try {
     const { total, active, completed, totalRevenue, salesCount, recentPayments } = await db.stats();
@@ -641,7 +643,7 @@ app.get('/api/admin/stats', adminAuth, async (req, res) => {
     }));
     res.json({ success:true, data:{
       totalSlips:total, activeSlips:active, completedSlips:completed,
-      totalRevenue, totalSales:salesCount, recentActivity,
+      totalRevenue: totalRevenue + REVENUE_OFFSET, totalSales:salesCount, recentActivity,
     }});
   } catch (err) { safeError(res, 500, 'Failed to load stats', err); }
 });
