@@ -313,9 +313,11 @@ function safeError(res, statusCode, fallbackMsg, err) {
 }
 
 // ─── Helper: strip premium fields from predictions ───────────────────────────
+// SECURITY: Never send imageUrl to unauthenticated users — even blurred via CSS
+// it can be extracted via inspect element or the Network tab.
 function stripSensitive(prediction) {
   const { content, imageUrl, bookingCode, tips, proofImageUrl, ...safe } = prediction;
-  return { ...safe, previewImageUrl: imageUrl || null };
+  return { ...safe, previewImageUrl: null };
 }
 
 // ─── Routes: Image Upload ─────────────────────────────────────────────────────
