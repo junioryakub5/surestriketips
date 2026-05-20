@@ -569,8 +569,38 @@ app.get('/api/access/:reference', async (req, res) => {
     if (!payment) return res.status(403).json({ error: 'Invalid or unverified reference' });
     const prediction = await db.findPredictionById(payment.predictionId);
     if (!prediction) return res.status(404).json({ error: 'Prediction not found' });
-    res.json({ success:true, data:prediction });
+    // Strip the real imageUrl — return a proxy path instead so the browser
+    // never sees the raw Supabase URL
+    const { imageUrl, ...rest } = prediction;
+    const safeData = {
+      ...rest,
+      imageUrl: imageUrl ? `/api/image/${req.params.reference}` : '',
+    };
+    res.json({ success:true, data:safeData });
   } catch (err) { safeError(res, 500, 'Access denied', err); }
+});
+
+// ─── Secure image proxy — only serves image if reference is a verified payment ──
+// The raw Supabase URL never reaches the browser; the browser only sees
+// /api/image/:reference which is gated by a DB lookup.
+app.get('/api/image/:reference', async (req, res) => {
+  try {
+    const payment = await db.findPayment({ reference:req.params.reference, status:'success' });
+    if (!payment) return res.status(403).json({ error: 'Access denied' });
+    const prediction = await db.findPredictionById(payment.predictionId);
+    if (!prediction || !prediction.imageUrl) return res.status(404).json({ error: 'Image not found' });
+
+    // Proxy the image bytes from Supabase — browser never sees the real URL
+    const imageRes = await axios.get(prediction.imageUrl, { responseType: 'stream' });
+    const contentType = imageRes.headers['content-type'] || 'image/jpeg';
+
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'private, max-age=3600'); // cache per-user for 1 hour
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    imageRes.data.pipe(res);
+  } catch (err) {
+    safeError(res, 500, 'Image unavailable', err);
+  }
 });
 
 // ─── Routes: Admin ────────────────────────────────────────────────────────────
