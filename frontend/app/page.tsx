@@ -5,6 +5,7 @@ import { Filter, TrendingUp, Shield, Loader2, CalendarX2, BarChart2, ShieldCheck
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PredictionCard from "@/components/PredictionCard";
+import Image from "next/image";
 import { getActivePredictions } from "@/lib/api";
 import { Prediction } from "@/lib/types";
 
@@ -80,10 +81,30 @@ export default function HomePage() {
 
           <div className="page-container text-center relative z-10">
 
-            {/* Badge */}
-            <div className="flex justify-center mb-6">
+            {/* Logo centrepiece */}
+            <div className="flex flex-col items-center mb-6 animate-fadeInUp">
               <div
-                className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-bold tracking-widest uppercase animate-fadeInUp"
+                className="relative animate-float"
+                style={{
+                  width: "110px",
+                  height: "110px",
+                  borderRadius: "50%",
+                  overflow: "hidden",
+                  boxShadow: "0 0 50px rgba(212,160,23,0.45), 0 0 120px rgba(212,160,23,0.15), 0 0 8px rgba(212,160,23,0.3)",
+                  border: "2px solid rgba(212,160,23,0.45)",
+                }}
+              >
+                <Image
+                  src="/logo.png"
+                  alt="Sure Strike Tips"
+                  width={110}
+                  height={110}
+                  className="w-full h-full object-cover"
+                  priority
+                />
+              </div>
+              <div
+                className="mt-3 inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-bold tracking-widest uppercase"
                 style={{
                   background: "rgba(212,160,23,0.08)",
                   border: "1px solid rgba(212,160,23,0.28)",
@@ -91,7 +112,7 @@ export default function HomePage() {
                 }}
               >
                 <span style={{
-                  width: "6px", height: "6px", borderRadius: "50%",
+                  width: "5px", height: "5px", borderRadius: "50%",
                   background: "#D4A017", boxShadow: "0 0 8px #D4A017",
                   display: "inline-block",
                 }} />

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export default function Footer() {
   return (
@@ -27,45 +28,49 @@ export default function Footer() {
 
       <div className="page-container relative z-10">
         {/* Logo */}
-        <div className="flex items-center justify-center gap-3 mb-3">
+        <div className="flex items-center justify-center gap-3 mb-4">
           <div
-            className="w-8 h-8 rounded-xl flex items-center justify-center"
+            className="relative flex-shrink-0"
             style={{
-              background: "linear-gradient(135deg, rgba(212,160,23,0.15), rgba(160,120,16,0.1))",
-              border: "1px solid rgba(212,160,23,0.25)",
-              boxShadow: "0 0 12px rgba(212,160,23,0.15)",
+              width: "56px",
+              height: "56px",
+              borderRadius: "50%",
+              overflow: "hidden",
+              boxShadow: "0 0 24px rgba(212,160,23,0.35), 0 0 8px rgba(212,160,23,0.2)",
+              border: "1.5px solid rgba(212,160,23,0.35)",
             }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z"
-                fill="url(#footerGoldBolt)"
-              />
-              <defs>
-                <linearGradient id="footerGoldBolt" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#F5C842" />
-                  <stop offset="100%" stopColor="#A07810" />
-                </linearGradient>
-              </defs>
-            </svg>
+            <Image
+              src="/logo.png"
+              alt="Sure Strike Tips Logo"
+              width={56}
+              height={56}
+              className="w-full h-full object-cover"
+            />
           </div>
-          <span className="font-brand text-lg font-bold" style={{ color: "#f5f5f5" }}>
-            Sure
-            <span
-              style={{
-                background: "linear-gradient(135deg, #D4A017, #F5C842)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}
-            >
-              Strike
+          <div className="flex flex-col text-left">
+            <span className="font-brand text-lg font-bold" style={{ color: "#f5f5f5" }}>
+              Sure
+              <span
+                style={{
+                  background: "linear-gradient(135deg, #D4A017, #F5C842)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
+                Strike
+              </span>
+              Tips
             </span>
-            Tips
-          </span>
+            <span
+              className="text-[9px] tracking-widest uppercase"
+              style={{ color: "#D4A017", opacity: 0.7, fontFamily: "'Space Grotesk', sans-serif" }}
+            >
+              Bet With Confidence
+            </span>
+          </div>
         </div>
 
-        <p className="text-sm mb-1" style={{ color: "#555555" }}>
-          Bet With Confidence
-        </p>
         <p className="text-xs mb-6" style={{ color: "#333333" }}>
           Premium football predictions for smart bettors
         </p>
@@ -83,7 +88,12 @@ export default function Footer() {
               <Link
                 href={link.href}
                 className="text-xs font-medium transition-colors duration-200 hover:text-[#D4A017]"
-                style={{ color: "#444444", fontFamily: "'Space Grotesk', sans-serif", letterSpacing: "0.06em", textTransform: "uppercase" }}
+                style={{
+                  color: "#444444",
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                }}
               >
                 {link.label}
               </Link>

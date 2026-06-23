@@ -1,6 +1,7 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Link from "next/link";
+import Image from "next/image";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -118,21 +119,37 @@ export default function AboutPage() {
           </div>
 
           <div className="page-container relative z-10 text-center flex flex-col items-center">
-            {/* Label pill */}
-            <div
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-bold tracking-widest uppercase mb-6 animate-fadeInUp"
-              style={{
-                background: "rgba(212,160,23,0.08)",
-                border: "1px solid rgba(212,160,23,0.28)",
-                color: "#D4A017",
-              }}
-            >
-              <span style={{
-                width: "6px", height: "6px", borderRadius: "50%",
-                background: "#D4A017", boxShadow: "0 0 8px #D4A017",
-                display: "inline-block",
-              }} />
-              About Sure Strike Tips
+            {/* Label pill with logo */}
+            <div className="flex flex-col items-center mb-6 animate-fadeInUp">
+              <div
+                style={{
+                  width: "90px",
+                  height: "90px",
+                  borderRadius: "50%",
+                  overflow: "hidden",
+                  boxShadow: "0 0 40px rgba(212,160,23,0.4), 0 0 80px rgba(212,160,23,0.12)",
+                  border: "2px solid rgba(212,160,23,0.4)",
+                  marginBottom: "1rem",
+                }}
+              >
+                <Image
+                  src="/logo.png"
+                  alt="Sure Strike Tips Logo"
+                  width={90}
+                  height={90}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div
+                className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-bold tracking-widest uppercase"
+                style={{
+                  background: "rgba(212,160,23,0.08)",
+                  border: "1px solid rgba(212,160,23,0.28)",
+                  color: "#D4A017",
+                }}
+              >
+                About Sure Strike Tips
+              </div>
             </div>
 
             <h1
