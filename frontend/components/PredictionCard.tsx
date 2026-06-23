@@ -118,10 +118,10 @@ interface Props {
 
 // ── Accent colours per odds category ─────────────────────────────────────────
 const ACCENT: Record<string, { bg: string; text: string; glow: string; border: string }> = {
-  "2+": { bg: "rgba(6,214,160,0.1)", text: "#06d6a0", glow: "rgba(6,214,160,0.2)", border: "rgba(6,214,160,0.2)" },
-  "5+": { bg: "rgba(245,158,11,0.1)", text: "#f59e0b", glow: "rgba(245,158,11,0.2)", border: "rgba(245,158,11,0.2)" },
-  "10+": { bg: "rgba(131,56,236,0.1)", text: "#8338ec", glow: "rgba(131,56,236,0.2)", border: "rgba(131,56,236,0.2)" },
-  "20+": { bg: "rgba(255,107,107,0.1)", text: "#ff6b6b", glow: "rgba(255,107,107,0.2)", border: "rgba(255,107,107,0.2)" },
+  "2+": { bg: "rgba(212,160,23,0.08)", text: "#D4A017", glow: "rgba(212,160,23,0.2)", border: "rgba(212,160,23,0.22)" },
+  "5+": { bg: "rgba(245,200,66,0.08)", text: "#F5C842", glow: "rgba(245,200,66,0.2)", border: "rgba(245,200,66,0.22)" },
+  "10+": { bg: "rgba(232,232,232,0.06)", text: "#E8E8E8", glow: "rgba(232,232,232,0.12)", border: "rgba(232,232,232,0.15)" },
+  "20+": { bg: "rgba(255,107,107,0.08)", text: "#ff6b6b", glow: "rgba(255,107,107,0.2)", border: "rgba(255,107,107,0.2)" },
 };
 
 // ── localStorage helpers ──────────────────────────────────────────────────────
@@ -187,23 +187,23 @@ function CountrySelectModal({
       onClick={onClose}
       style={{ overscrollBehavior: "contain" }}
     >
-      <div className="absolute inset-0 backdrop-blur-md" style={{ background: "rgba(10,14,23,0.7)" }} />
+      <div className="absolute inset-0 backdrop-blur-md" style={{ background: "rgba(10,10,10,0.75)" }} />
       <div
         className="relative w-full max-w-sm overflow-hidden shadow-2xl"
-        style={{ background: "rgba(17,24,39,0.92)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "20px", backdropFilter: "blur(24px)" }}
+        style={{ background: "rgba(18,16,8,0.95)", border: "1px solid rgba(212,160,23,0.12)", borderRadius: "20px", backdropFilter: "blur(24px)" }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Accent strip */}
-        <div className="h-0.5 w-full" style={{ background: `linear-gradient(90deg, ${acc.text}, #8338ec)` }} />
+        <div className="h-0.5 w-full" style={{ background: `linear-gradient(90deg, ${acc.text}, #F5C842)` }} />
 
         {/* Header */}
-        <div className="px-6 pt-5 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+        <div className="px-6 pt-5 pb-4" style={{ borderBottom: "1px solid rgba(212,160,23,0.08)" }}>
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="font-semibold text-base" style={{ color: "#f0f4f8", fontFamily: "'Space Grotesk', sans-serif" }}>Choose your country</h2>
-              <p className="text-xs mt-0.5" style={{ color: "#64748b" }}>Select to continue with payment</p>
+              <h2 className="font-semibold text-base" style={{ color: "#f5f5f5", fontFamily: "'Space Grotesk', sans-serif" }}>Choose your country</h2>
+              <p className="text-xs mt-0.5" style={{ color: "#555555" }}>Select to continue with payment</p>
             </div>
-            <button onClick={onClose} style={{ color: "#64748b" }}><X size={18} /></button>
+            <button onClick={onClose} style={{ color: "#555555" }}><X size={18} /></button>
           </div>
         </div>
 
@@ -213,33 +213,39 @@ function CountrySelectModal({
           <button
             onClick={onGhana}
             className="w-full flex items-center justify-between px-4 py-4 transition-all duration-200 active:scale-[0.98]"
-            style={{ background: "rgba(17,24,39,0.6)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px" }}
+            style={{ background: "rgba(18,16,8,0.7)", border: "1px solid rgba(212,160,23,0.1)", borderRadius: "16px" }}
           >
             <div className="flex items-center gap-3">
               <span className="text-2xl">🇬🇭</span>
               <div className="text-left">
-                <p className="font-semibold text-sm" style={{ color: "#f0f4f8" }}>Ghana</p>
-                <p className="text-xs" style={{ color: "#64748b" }}>GHS {prediction.price} — Mobile Money / Card</p>
+                <p className="font-semibold text-sm" style={{ color: "#f5f5f5" }}>Ghana</p>
+                <p className="text-xs" style={{ color: "#555555" }}>GHS {prediction.price} — Mobile Money / Card</p>
               </div>
             </div>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5"><path d="M9 18l6-6-6-6"/></svg>
           </button>
 
-          {/* Nigeria */}
-          <button
-            onClick={onNigeria}
-            className="w-full flex items-center justify-between px-4 py-4 transition-all duration-200 active:scale-[0.98]"
-            style={{ background: "rgba(17,24,39,0.6)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "16px" }}
+          {/* Nigeria — temporarily unavailable */}
+          <div
+            className="w-full flex items-center justify-between px-4 py-4"
+            style={{ background: "rgba(17,24,39,0.3)", border: "1px solid rgba(255,255,255,0.04)", borderRadius: "16px", opacity: 0.5, cursor: "not-allowed" }}
           >
             <div className="flex items-center gap-3">
-              <span className="text-2xl">🇳🇬</span>
+              <span className="text-2xl" style={{ filter: "grayscale(1)" }}>🇳🇬</span>
               <div className="text-left">
-                <p className="font-semibold text-sm" style={{ color: "#f0f4f8" }}>Nigeria</p>
-                <p className="text-xs" style={{ color: "#64748b" }}>₦{ngn.toLocaleString()} — Bank Transfer</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-sm" style={{ color: "#94a3b8" }}>Nigeria</p>
+                  <span
+                    className="text-[9px] font-bold px-2 py-0.5 uppercase tracking-wider"
+                    style={{ background: "rgba(245,158,11,0.1)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.2)", borderRadius: "6px", fontFamily: "'Space Grotesk', sans-serif" }}
+                  >
+                    Unavailable
+                  </span>
+                </div>
+                <p className="text-xs" style={{ color: "#475569" }}>Bank Transfer — coming soon</p>
               </div>
             </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5"><path d="M9 18l6-6-6-6"/></svg>
-          </button>
+          </div>
         </div>
 
         {/* Cancel */}
@@ -247,7 +253,7 @@ function CountrySelectModal({
           <button
             onClick={onClose}
             className="w-full py-3 text-sm font-medium transition-all"
-            style={{ background: "rgba(17,24,39,0.6)", color: "#94a3b8", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.05)" }}
+            style={{ background: "rgba(18,16,8,0.7)", color: "#888888", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.05)" }}
           >
             Cancel
           </button>
@@ -306,7 +312,7 @@ function NigeriaPaymentModal({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Accent strip */}
-        <div className="h-0.5 w-full" style={{ background: `linear-gradient(90deg, ${acc.text}, #8338ec)` }} />
+        <div className="h-0.5 w-full" style={{ background: `linear-gradient(90deg, ${acc.text}, #F5C842)` }} />
 
         {/* Header */}
         <div className="px-6 pt-5 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
@@ -367,9 +373,9 @@ function NigeriaPaymentModal({
                 onClick={copyAccount}
                 className="flex items-center gap-1 text-xs px-2.5 py-1 font-medium transition-all"
                 style={{
-                  background: copied ? "rgba(6,214,160,0.1)" : acc.bg,
-                  color: copied ? "#06d6a0" : acc.text,
-                  border: `1px solid ${copied ? "rgba(6,214,160,0.2)" : acc.border}`,
+                  background: copied ? "rgba(212,160,23,0.1)" : acc.bg,
+                  color: copied ? "#D4A017" : acc.text,
+                  border: `1px solid ${copied ? "rgba(212,160,23,0.25)" : acc.border}`,
                   borderRadius: "8px",
                 }}
               >
@@ -398,9 +404,9 @@ function NigeriaPaymentModal({
             rel="noopener noreferrer"
             className="w-full flex items-center justify-center gap-2 font-bold text-sm py-3.5 transition-all duration-300 active:scale-[0.97]"
             style={{
-              background: "linear-gradient(135deg, #06d6a0, #059d79)",
-              color: "#0a0e17",
-              boxShadow: "0 0 20px rgba(6,214,160,0.3), 0 4px 16px rgba(6,214,160,0.2)",
+              background: "linear-gradient(135deg, #D4A017, #A07810)",
+              color: "#0a0a0a",
+              boxShadow: "0 0 20px rgba(212,160,23,0.3), 0 4px 16px rgba(212,160,23,0.2)",
               borderRadius: "12px",
               fontFamily: "'Space Grotesk', sans-serif",
               letterSpacing: "0.04em",
@@ -579,7 +585,7 @@ function PaymentModal({
           className="relative w-full max-w-sm overflow-hidden shadow-2xl flex flex-col items-center justify-center gap-5 py-14 px-8"
           style={{ background: "rgba(17,24,39,0.9)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "20px", backdropFilter: "blur(24px)" }}
         >
-          <div className="h-0.5 w-full absolute top-0 left-0" style={{ background: `linear-gradient(90deg, ${acc.text}, #8338ec)` }} />
+          <div className="h-0.5 w-full absolute top-0 left-0" style={{ background: `linear-gradient(90deg, ${acc.text}, #F5C842)` }} />
           <div
             className="w-16 h-16 flex items-center justify-center"
             style={{ background: acc.bg, border: `1px solid ${acc.border}`, borderRadius: "16px", boxShadow: `0 0 24px ${acc.glow}` }}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Filter, TrendingUp, Shield, Loader2, CalendarX2, BarChart2, ShieldCheck, Zap, Sparkles, Trophy } from "lucide-react";
+import { Filter, TrendingUp, Shield, Loader2, CalendarX2, BarChart2, ShieldCheck, Zap, Trophy } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PredictionCard from "@/components/PredictionCard";
@@ -48,70 +48,112 @@ export default function HomePage() {
     <>
       <Navbar />
 
-      <main className="min-h-screen" style={{ background: "#0a0e17" }}>
+      <main className="min-h-screen" style={{ background: "#0a0a0a" }}>
+
         {/* ── Hero ── */}
-        <section className="pt-28 pb-14 relative overflow-hidden" style={{ background: "#0f1729" }}>
-          {/* Background gradient orbs */}
-          <div
-            className="absolute top-0 left-1/4 w-96 h-96 rounded-full opacity-20 blur-3xl"
-            style={{ background: "radial-gradient(circle, rgba(6,214,160,0.3) 0%, transparent 70%)" }}
-          />
-          <div
-            className="absolute bottom-0 right-1/4 w-80 h-80 rounded-full opacity-15 blur-3xl"
-            style={{ background: "radial-gradient(circle, rgba(131,56,236,0.3) 0%, transparent 70%)" }}
-          />
+        <section className="pt-28 pb-16 relative overflow-hidden" style={{ background: "#0a0a0a" }}>
+
+          {/* Background atmosphere */}
+          <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+            {/* Large gold orb top-right */}
+            <div style={{
+              position: "absolute", top: "-10%", right: "-5%",
+              width: "700px", height: "700px", borderRadius: "50%",
+              background: "radial-gradient(circle, rgba(212,160,23,0.12) 0%, rgba(212,160,23,0.04) 50%, transparent 70%)",
+              filter: "blur(60px)",
+            }} />
+            {/* Smaller gold orb bottom-left */}
+            <div style={{
+              position: "absolute", bottom: "0%", left: "-8%",
+              width: "400px", height: "400px", borderRadius: "50%",
+              background: "radial-gradient(circle, rgba(160,120,16,0.1) 0%, transparent 70%)",
+              filter: "blur(50px)",
+            }} />
+            {/* Subtle grid overlay */}
+            <div style={{
+              position: "absolute", inset: 0,
+              backgroundImage: "linear-gradient(rgba(212,160,23,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(212,160,23,0.02) 1px, transparent 1px)",
+              backgroundSize: "80px 80px",
+              maskImage: "radial-gradient(ellipse 80% 60% at 50% 40%, black 20%, transparent 100%)",
+            }} />
+          </div>
 
           <div className="page-container text-center relative z-10">
+
             {/* Badge */}
             <div className="flex justify-center mb-6">
               <div
-                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold"
+                className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-xs font-bold tracking-widest uppercase animate-fadeInUp"
                 style={{
-                  background: "rgba(6,214,160,0.08)",
-                  border: "1px solid rgba(6,214,160,0.2)",
-                  color: "#06d6a0",
-                  fontFamily: "'Space Grotesk', sans-serif",
-                  letterSpacing: "0.06em",
-                  textTransform: "uppercase",
-                  fontSize: "0.65rem",
+                  background: "rgba(212,160,23,0.08)",
+                  border: "1px solid rgba(212,160,23,0.28)",
+                  color: "#D4A017",
                 }}
               >
-                <Sparkles size={12} />
+                <span style={{
+                  width: "6px", height: "6px", borderRadius: "50%",
+                  background: "#D4A017", boxShadow: "0 0 8px #D4A017",
+                  display: "inline-block",
+                }} />
                 Premium Football Predictions
               </div>
             </div>
 
             {/* Headline */}
-            <h1 className="section-title mb-4" style={{ color: "#f0f4f8" }}>
+            <h1
+              className="animate-fadeInUp"
+              style={{
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontWeight: 800,
+                fontSize: "clamp(2.4rem, 7vw, 5rem)",
+                lineHeight: 1.0,
+                letterSpacing: "-0.03em",
+                color: "#f5f5f5",
+                marginBottom: "1rem",
+              }}
+            >
               This Week&apos;s{" "}
               <span
                 style={{
-                  background: "linear-gradient(135deg, #06d6a0, #8338ec)",
+                  background: "linear-gradient(135deg, #D4A017 0%, #F5C842 50%, #C9960C 100%)",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                  filter: "drop-shadow(0 0 24px rgba(212,160,23,0.4))",
+                  display: "inline-block",
                 }}
               >
                 Featured Tips
               </span>
             </h1>
-            <p className="text-base md:text-lg max-w-lg mx-auto mb-12 leading-relaxed" style={{ color: "#94a3b8" }}>
+
+            <p
+              className="animate-fadeInUp"
+              style={{
+                color: "#888888",
+                fontSize: "clamp(0.9rem, 2.2vw, 1.05rem)",
+                maxWidth: "500px",
+                margin: "0 auto 3rem",
+                lineHeight: 1.7,
+              }}
+            >
               Unlock premium predictions with guaranteed odds. Expert analysis, verified results, instant access.
             </p>
 
             {/* Stats row */}
-            <div className="flex items-center justify-center gap-4 md:gap-6 mb-14">
+            <div className="flex items-center justify-center gap-3 md:gap-5 mb-14 animate-fadeInUp">
               {[
-                { icon: <Trophy size={18} />, label: "Win Rate", value: "87%", color: "#06d6a0" },
-                { icon: <TrendingUp size={18} />, label: "Predictions", value: "500+", color: "#8338ec" },
-                { icon: <Shield size={18} />, label: "Verified", value: "100%", color: "#f59e0b" },
+                { icon: <Trophy size={18} />, label: "Win Rate", value: "87%", color: "#D4A017", glow: "rgba(212,160,23,0.35)" },
+                { icon: <TrendingUp size={18} />, label: "Predictions", value: "500+", color: "#E8E8E8", glow: "rgba(232,232,232,0.15)" },
+                { icon: <Shield size={18} />, label: "Verified", value: "100%", color: "#F5C842", glow: "rgba(245,200,66,0.3)" },
               ].map((stat) => (
                 <div
                   key={stat.label}
-                  className="flex flex-col items-center gap-1 px-5 py-4 transition-all duration-300 hover:scale-105"
+                  className="flex flex-col items-center gap-1 px-5 py-4 transition-all duration-300 hover:scale-105 hover:-translate-y-1"
                   style={{
-                    background: "rgba(17,24,39,0.6)",
-                    border: "1px solid rgba(255,255,255,0.06)",
-                    boxShadow: "0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04)",
+                    background: "rgba(18,16,8,0.8)",
+                    border: "1px solid rgba(212,160,23,0.12)",
+                    boxShadow: `0 4px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.02)`,
                     backdropFilter: "blur(16px)",
                     minWidth: "100px",
                     borderRadius: "16px",
@@ -120,19 +162,27 @@ export default function HomePage() {
                   <div style={{ color: stat.color }}>{stat.icon}</div>
                   <span
                     className="font-display font-bold"
-                    style={{ fontSize: "1.5rem", color: stat.color }}
+                    style={{
+                      fontSize: "1.6rem",
+                      color: stat.color,
+                      filter: `drop-shadow(0 0 12px ${stat.glow})`,
+                      lineHeight: 1,
+                    }}
                   >
                     {stat.value}
                   </span>
-                  <span className="text-[10px] font-semibold tracking-wider uppercase" style={{ color: "#64748b", fontFamily: "'Space Grotesk', sans-serif" }}>
+                  <span
+                    className="text-[10px] font-semibold tracking-wider uppercase"
+                    style={{ color: "#444444", fontFamily: "'Space Grotesk', sans-serif" }}
+                  >
                     {stat.label}
                   </span>
                 </div>
               ))}
             </div>
 
-            {/* Filter bar label */}
-            <div className="flex items-center justify-center gap-2 text-sm mb-4" style={{ color: "#64748b" }}>
+            {/* Filter label */}
+            <div className="flex items-center justify-center gap-2 text-sm mb-3" style={{ color: "#444444" }}>
               <Filter size={14} />
               <span className="font-medium uppercase text-xs tracking-wider" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Filter by odds</span>
             </div>
@@ -140,10 +190,9 @@ export default function HomePage() {
             {/* Filter pills */}
             <div className="relative">
               <div className="pointer-events-none absolute right-0 top-0 h-full w-8 z-10 md:hidden"
-                style={{ background: "linear-gradient(to right, transparent, #0f1729)" }} />
-              <div className="flex items-center gap-2 overflow-x-auto md:flex-wrap md:justify-center md:overflow-visible
-                px-1 pb-1 scroll-smooth
-                scrollbar-none [&::-webkit-scrollbar]:hidden"
+                style={{ background: "linear-gradient(to right, transparent, #0a0a0a)" }} />
+              <div
+                className="flex items-center gap-2 overflow-x-auto md:flex-wrap md:justify-center md:overflow-visible px-1 pb-1 scroll-smooth scrollbar-none [&::-webkit-scrollbar]:hidden"
                 style={{ WebkitOverflowScrolling: "touch" }}
               >
                 {FILTER_TABS.map((tab) => (
@@ -158,15 +207,15 @@ export default function HomePage() {
                       borderRadius: "10px",
                       ...(activeFilter === tab.value
                         ? {
-                          background: "linear-gradient(135deg, #06d6a0, #059d79)",
-                          color: "#0a0e17",
+                          background: "linear-gradient(135deg, #D4A017, #A07810)",
+                          color: "#0a0a0a",
                           borderColor: "transparent",
-                          boxShadow: "0 0 20px rgba(6,214,160,0.3)",
+                          boxShadow: "0 0 20px rgba(212,160,23,0.4)",
                         }
                         : {
-                          background: "rgba(17,24,39,0.6)",
-                          color: "#94a3b8",
-                          borderColor: "rgba(255,255,255,0.08)",
+                          background: "rgba(18,16,8,0.8)",
+                          color: "#888888",
+                          borderColor: "rgba(255,255,255,0.07)",
                         }),
                     }}
                   >
@@ -179,22 +228,22 @@ export default function HomePage() {
         </section>
 
         {/* ── Cards Grid ── */}
-        <section className="pb-20 relative z-10" style={{ background: "#0a0e17" }}>
+        <section className="pb-20 relative z-10" style={{ background: "#0a0a0a" }}>
           <div className="page-container pt-10">
             {loading ? (
               <div className="flex flex-col items-center justify-center py-24 gap-4">
                 <div
                   className="w-16 h-16 flex items-center justify-center"
                   style={{
-                    background: "rgba(6,214,160,0.08)",
-                    border: "1px solid rgba(6,214,160,0.2)",
+                    background: "rgba(212,160,23,0.08)",
+                    border: "1px solid rgba(212,160,23,0.2)",
                     borderRadius: "16px",
-                    boxShadow: "0 0 24px rgba(6,214,160,0.15)",
+                    boxShadow: "0 0 24px rgba(212,160,23,0.15)",
                   }}
                 >
-                  <Loader2 size={28} style={{ color: "#06d6a0" }} className="animate-spin" />
+                  <Loader2 size={28} style={{ color: "#D4A017" }} className="animate-spin" />
                 </div>
-                <p style={{ color: "#64748b" }} className="text-sm">Loading predictions...</p>
+                <p style={{ color: "#555555" }} className="text-sm">Loading predictions...</p>
               </div>
             ) : error ? (
               <div className="text-center py-24">
@@ -211,15 +260,15 @@ export default function HomePage() {
                 <div
                   className="w-16 h-16 flex items-center justify-center mx-auto mb-5"
                   style={{
-                    background: "rgba(17,24,39,0.6)",
-                    border: "1px solid rgba(255,255,255,0.06)",
+                    background: "rgba(18,16,8,0.8)",
+                    border: "1px solid rgba(255,255,255,0.05)",
                     borderRadius: "16px",
                   }}
                 >
-                  <CalendarX2 size={28} style={{ color: "#64748b" }} />
+                  <CalendarX2 size={28} style={{ color: "#444444" }} />
                 </div>
-                <p className="text-lg mb-2 font-display font-semibold" style={{ color: "#f0f4f8" }}>No predictions available</p>
-                <p className="text-sm" style={{ color: "#64748b" }}>Check back soon — new tips are being prepared.</p>
+                <p className="text-lg mb-2 font-display font-semibold" style={{ color: "#f5f5f5" }}>No predictions available</p>
+                <p className="text-sm" style={{ color: "#555555" }}>Check back soon — new tips are being prepared.</p>
               </div>
             ) : (
               <>
@@ -245,21 +294,28 @@ export default function HomePage() {
         </section>
 
         {/* ── Trust Section ── */}
-        <section className="py-10 md:py-20 relative z-10" style={{ background: "#0f1729" }}>
-          {/* Gradient divider */}
+        <section className="py-12 md:py-20 relative z-10" style={{ background: "#0f0f0f" }}>
+          {/* Gold top divider */}
           <div
             className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-px"
-            style={{ background: "linear-gradient(90deg, transparent, rgba(6,214,160,0.3), rgba(131,56,236,0.3), transparent)" }}
+            style={{ background: "linear-gradient(90deg, transparent, rgba(212,160,23,0.3), rgba(245,200,66,0.3), transparent)" }}
           />
+
           <div className="page-container text-center">
+            <p
+              className="text-xs font-bold tracking-widest uppercase mb-4"
+              style={{ color: "#D4A017", letterSpacing: "0.12em", fontFamily: "'Space Grotesk', sans-serif" }}
+            >
+              Why Us
+            </p>
             <h2
               className="font-display font-bold mb-2 md:mb-3"
-              style={{ fontSize: "clamp(1.4rem,5vw,2.8rem)", letterSpacing: "-0.02em", color: "#f0f4f8" }}
+              style={{ fontSize: "clamp(1.4rem,5vw,2.8rem)", letterSpacing: "-0.02em", color: "#f5f5f5" }}
             >
               Why Trust{" "}
               <span
                 style={{
-                  background: "linear-gradient(135deg, #06d6a0, #8338ec)",
+                  background: "linear-gradient(135deg, #D4A017, #F5C842)",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
                 }}
@@ -267,47 +323,48 @@ export default function HomePage() {
                 Sure Strike Tips?
               </span>
             </h2>
-            <p className="text-xs md:text-sm max-w-md mx-auto mb-6 md:mb-14 leading-relaxed" style={{ color: "#64748b" }}>
+            <p className="text-xs md:text-sm max-w-md mx-auto mb-8 md:mb-14 leading-relaxed" style={{ color: "#555555" }}>
               Expert-verified predictions. Secure payments via Paystack. Instant access.
             </p>
-            {/* 3-col grid on all sizes */}
+
+            {/* 3-col grid */}
             <div className="grid grid-cols-3 gap-2 md:gap-5 max-w-4xl mx-auto">
               {[
                 {
                   icon: <BarChart2 size={20} />,
                   title: "Expert Analysis",
-                  desc: "Statistic-driven predictions backed by deep match research",
-                  color: "#06d6a0",
-                  bg: "rgba(6,214,160,0.1)",
-                  borderColor: "rgba(6,214,160,0.2)",
-                  glow: "rgba(6,214,160,0.1)",
+                  desc: "Statistic-driven predictions backed by deep match research and form data",
+                  color: "#D4A017",
+                  bg: "rgba(212,160,23,0.08)",
+                  borderColor: "rgba(212,160,23,0.2)",
+                  glow: "rgba(212,160,23,0.08)",
                 },
                 {
                   icon: <ShieldCheck size={20} />,
                   title: "Secure Payments",
-                  desc: "Paystack-powered payments — safe and instant",
-                  color: "#8338ec",
-                  bg: "rgba(131,56,236,0.1)",
-                  borderColor: "rgba(131,56,236,0.2)",
-                  glow: "rgba(131,56,236,0.1)",
+                  desc: "Paystack-powered payments — bank-grade security, instant confirmation",
+                  color: "#E8E8E8",
+                  bg: "rgba(232,232,232,0.04)",
+                  borderColor: "rgba(232,232,232,0.1)",
+                  glow: "rgba(232,232,232,0.04)",
                 },
                 {
                   icon: <Zap size={20} />,
                   title: "Instant Access",
-                  desc: "Unlock your prediction immediately after payment",
-                  color: "#f59e0b",
-                  bg: "rgba(245,158,11,0.1)",
-                  borderColor: "rgba(245,158,11,0.2)",
-                  glow: "rgba(245,158,11,0.1)",
+                  desc: "Unlock your prediction immediately after payment — no delays",
+                  color: "#F5C842",
+                  bg: "rgba(245,200,66,0.08)",
+                  borderColor: "rgba(245,200,66,0.2)",
+                  glow: "rgba(245,200,66,0.06)",
                 },
               ].map((item) => (
                 <div
                   key={item.title}
                   className="flex flex-col items-center text-center p-3 md:p-7 transition-all duration-300 hover:-translate-y-1 md:hover:-translate-y-2 group"
                   style={{
-                    background: "rgba(17,24,39,0.6)",
+                    background: "rgba(18,16,8,0.7)",
                     border: `1px solid ${item.borderColor}`,
-                    boxShadow: `0 4px 24px rgba(0,0,0,0.3), 0 0 20px ${item.glow}`,
+                    boxShadow: `0 4px 24px rgba(0,0,0,0.4), 0 0 20px ${item.glow}`,
                     backdropFilter: "blur(16px)",
                     borderRadius: "16px",
                   }}
@@ -324,14 +381,50 @@ export default function HomePage() {
                     {item.icon}
                   </div>
                   <div className="min-w-0">
-                    <h3 className="font-display font-bold text-[11px] md:text-sm mb-0.5 md:mb-2 tracking-wide uppercase" style={{ color: "#f0f4f8" }}>{item.title}</h3>
-                    <p className="text-[10px] md:text-xs leading-relaxed hidden md:block" style={{ color: "#64748b" }}>{item.desc}</p>
+                    <h3 className="font-display font-bold text-[11px] md:text-sm mb-0.5 md:mb-2 tracking-wide uppercase" style={{ color: "#f5f5f5" }}>{item.title}</h3>
+                    <p className="text-[10px] md:text-xs leading-relaxed hidden md:block" style={{ color: "#555555" }}>{item.desc}</p>
                   </div>
                 </div>
               ))}
             </div>
           </div>
         </section>
+
+        {/* ── CTA Banner ── */}
+        <section className="py-16 relative overflow-hidden" style={{ background: "#0a0a0a" }}>
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: "radial-gradient(ellipse 60% 60% at 50% 50%, rgba(212,160,23,0.06) 0%, transparent 70%)",
+            }}
+          />
+          <div className="page-container text-center relative z-10">
+            <p
+              className="text-xs font-bold tracking-widest uppercase mb-4"
+              style={{ color: "#D4A017", letterSpacing: "0.12em", fontFamily: "'Space Grotesk', sans-serif" }}
+            >
+              Get Started
+            </p>
+            <h2
+              className="font-display font-bold mb-4"
+              style={{ fontSize: "clamp(1.6rem,5vw,3rem)", letterSpacing: "-0.02em", color: "#f5f5f5" }}
+            >
+              Ready to Bet With Confidence?
+            </h2>
+            <p className="text-sm max-w-md mx-auto mb-8" style={{ color: "#555555" }}>
+              Join thousands of bettors winning consistently with expert Sure Strike tips.
+            </p>
+            <div className="flex items-center justify-center gap-4 flex-wrap">
+              <a href="/about" className="btn-gold" style={{ borderRadius: "12px" }}>
+                Learn More
+              </a>
+              <a href="/history" className="btn-outline-gold" style={{ borderRadius: "12px" }}>
+                View Track Record
+              </a>
+            </div>
+          </div>
+        </section>
+
       </main>
 
       <Footer />

@@ -13,25 +13,25 @@ import { Prediction } from "@/lib/types";
 // ── Accent colours per odds category (mirrors PredictionCard) ─────────────────
 const ACCENT: Record<string, { bg: string; text: string; glow: string; border: string; gradient: string }> = {
   "2+": {
-    bg: "rgba(6,214,160,0.08)",
-    text: "#06d6a0",
-    glow: "rgba(6,214,160,0.18)",
-    border: "rgba(6,214,160,0.2)",
-    gradient: "linear-gradient(90deg, #06d6a0, #059d79)",
+    bg: "rgba(212,160,23,0.08)",
+    text: "#D4A017",
+    glow: "rgba(212,160,23,0.2)",
+    border: "rgba(212,160,23,0.22)",
+    gradient: "linear-gradient(90deg, #D4A017, #A07810)",
   },
   "5+": {
-    bg: "rgba(245,158,11,0.08)",
-    text: "#f59e0b",
-    glow: "rgba(245,158,11,0.18)",
-    border: "rgba(245,158,11,0.2)",
-    gradient: "linear-gradient(90deg, #f59e0b, #d97706)",
+    bg: "rgba(245,200,66,0.08)",
+    text: "#F5C842",
+    glow: "rgba(245,200,66,0.2)",
+    border: "rgba(245,200,66,0.22)",
+    gradient: "linear-gradient(90deg, #F5C842, #C9960C)",
   },
   "10+": {
-    bg: "rgba(131,56,236,0.08)",
-    text: "#8338ec",
-    glow: "rgba(131,56,236,0.18)",
-    border: "rgba(131,56,236,0.2)",
-    gradient: "linear-gradient(90deg, #8338ec, #6b21a8)",
+    bg: "rgba(232,232,232,0.06)",
+    text: "#E8E8E8",
+    glow: "rgba(232,232,232,0.12)",
+    border: "rgba(232,232,232,0.15)",
+    gradient: "linear-gradient(90deg, #E8E8E8, #b0b0b0)",
   },
   "20+": {
     bg: "rgba(255,107,107,0.08)",
@@ -67,13 +67,13 @@ function Lightbox({ src, alt, onClose }: { src: string; alt: string; onClose: ()
   return (
     <div
       className="fixed inset-0 z-[9999] overflow-y-auto flex items-center justify-center p-4"
-      style={{ background: "rgba(10,14,23,0.94)", backdropFilter: "blur(10px)" }}
+      style={{ background: "rgba(10,10,10,0.94)", backdropFilter: "blur(10px)" }}
       onClick={onClose}
     >
       <button
         onClick={onClose}
         className="fixed top-4 right-4 w-10 h-10 flex items-center justify-center z-[10000] transition-all duration-200 hover:scale-110"
-        style={{ background: "rgba(6,214,160,0.9)", borderRadius: "50%", boxShadow: "0 0 20px rgba(6,214,160,0.4)" }}
+        style={{ background: "rgba(212,160,23,0.9)", borderRadius: "50%", boxShadow: "0 0 20px rgba(212,160,23,0.4)" }}
       >
         <X size={18} color="#0a0e17" strokeWidth={2.5} />
       </button>
@@ -127,7 +127,7 @@ function ImageThumb({
           type="button"
           onClick={() => setLightbox(true)}
           className="relative group overflow-hidden cursor-zoom-in w-full"
-          style={{ background: "rgba(10,14,23,0.7)" }}
+          style={{ background: "rgba(10,10,10,0.7)" }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -142,7 +142,7 @@ function ImageThumb({
           >
             <span
               className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 flex items-center gap-1.5"
-              style={{ background: accent.gradient, color: "#0a0e17", borderRadius: "8px", fontFamily: "'Space Grotesk', sans-serif" }}
+              style={{ background: accent.gradient, color: "#0a0a0a", borderRadius: "8px", fontFamily: "'Space Grotesk', sans-serif" }}
             >
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
@@ -182,8 +182,8 @@ function ResultCard({ prediction, index }: { prediction: Prediction; index: numb
         opacity: 0,
         borderColor: isWin ? acc.border : "rgba(255,107,107,0.15)",
         boxShadow: isWin
-          ? `0 4px 32px rgba(0,0,0,0.35), 0 0 24px ${acc.glow}`
-          : "0 4px 32px rgba(0,0,0,0.35), 0 0 24px rgba(255,107,107,0.08)",
+          ? `0 4px 32px rgba(0,0,0,0.5), 0 0 24px ${acc.glow}`
+          : "0 4px 32px rgba(0,0,0,0.5), 0 0 24px rgba(255,107,107,0.08)",
       }}
     >
       {/* ── Accent gradient strip (top) */}
@@ -198,7 +198,7 @@ function ResultCard({ prediction, index }: { prediction: Prediction; index: numb
         <div className="flex-1 min-w-0">
           <h3
             className="font-bold text-sm md:text-base leading-snug"
-            style={{ color: "#f0f4f8", fontFamily: "'Space Grotesk', sans-serif" }}
+            style={{ color: "#f5f5f5", fontFamily: "'Space Grotesk', sans-serif" }}
           >
             {prediction.match}
           </h3>
@@ -231,9 +231,9 @@ function ResultCard({ prediction, index }: { prediction: Prediction; index: numb
             <span
               className="text-[10px] font-black px-3 py-1 flex items-center gap-1 uppercase tracking-wider"
               style={{
-                background: isWin ? "rgba(6,214,160,0.12)" : "rgba(255,107,107,0.12)",
-                color: isWin ? "#06d6a0" : "#ff6b6b",
-                border: isWin ? "1px solid rgba(6,214,160,0.25)" : "1px solid rgba(255,107,107,0.25)",
+                background: isWin ? "rgba(34,197,94,0.1)" : "rgba(255,107,107,0.12)",
+                color: isWin ? "#22c55e" : "#ff6b6b",
+                border: isWin ? "1px solid rgba(34,197,94,0.25)" : "1px solid rgba(255,107,107,0.25)",
                 borderRadius: "8px",
                 fontFamily: "'Space Grotesk', sans-serif",
               }}
@@ -244,7 +244,7 @@ function ResultCard({ prediction, index }: { prediction: Prediction; index: numb
           )}
 
           {/* Date */}
-          <span className="flex items-center gap-1 text-[11px]" style={{ color: "#64748b" }}>
+          <span className="flex items-center gap-1 text-[11px]" style={{ color: "#555555" }}>
             <Calendar size={12} />
             {new Date(prediction.date).toLocaleDateString("en-GB", {
               weekday: "short", day: "numeric", month: "short",
@@ -313,19 +313,19 @@ function ResultCard({ prediction, index }: { prediction: Prediction; index: numb
             <div
               className="mx-4 md:mx-5 mb-4 mt-1 flex flex-col items-center justify-center py-8 px-4 text-center"
               style={{
-                background: isWin ? "rgba(6,214,160,0.05)" : "rgba(255,107,107,0.05)",
-                border: isWin ? "1px solid rgba(6,214,160,0.12)" : "1px solid rgba(255,107,107,0.12)",
+                background: isWin ? "rgba(34,197,94,0.05)" : "rgba(255,107,107,0.05)",
+                border: isWin ? "1px solid rgba(34,197,94,0.12)" : "1px solid rgba(255,107,107,0.12)",
                 borderRadius: "12px",
               }}
             >
               {isWin ? (
-                <CheckCircle2 size={44} className="mb-3" style={{ color: "#06d6a0" }} />
+                <CheckCircle2 size={44} className="mb-3" style={{ color: "#22c55e" }} />
               ) : (
                 <XCircle size={44} className="mb-3" style={{ color: "#ff6b6b" }} />
               )}
               <p
                 className="font-black text-xl mb-1"
-                style={{ color: isWin ? "#06d6a0" : "#ff6b6b", fontFamily: "'Space Grotesk', sans-serif" }}
+                style={{ color: isWin ? "#22c55e" : "#ff6b6b", fontFamily: "'Space Grotesk', sans-serif" }}
               >
                 {isWin ? "Prediction Won!" : "Better luck next time"}
               </p>
@@ -338,14 +338,14 @@ function ResultCard({ prediction, index }: { prediction: Prediction; index: numb
       {/* ── Footer */}
       <div
         className="flex items-center justify-between px-4 md:px-5 py-2.5"
-        style={{ borderTop: "1px solid rgba(255,255,255,0.05)", background: "rgba(10,14,23,0.3)" }}
+        style={{ borderTop: "1px solid rgba(255,255,255,0.05)", background: "rgba(10,10,10,0.4)" }}
       >
         <span className="text-[11px]" style={{ color: "#334155" }}>
           {prediction.league || "—"}
         </span>
         <span
           className="text-[11px] font-semibold flex items-center gap-1"
-          style={{ color: isWin ? "#06d6a0" : "#ff6b6b", fontFamily: "'Space Grotesk', sans-serif" }}
+          style={{ color: isWin ? "#22c55e" : "#ff6b6b", fontFamily: "'Space Grotesk', sans-serif" }}
         >
           {isWin ? <CheckCircle2 size={11} /> : <XCircle size={11} />}
           {isWin ? "Prediction correct" : "Prediction missed"}
@@ -362,9 +362,9 @@ function MonthLabel({ label }: { label: string }) {
       <span
         className="text-xs font-bold uppercase tracking-widest px-3 py-1"
         style={{
-          color: "#06d6a0",
-          background: "rgba(6,214,160,0.06)",
-          border: "1px solid rgba(6,214,160,0.15)",
+          color: "#D4A017",
+          background: "rgba(212,160,23,0.07)",
+          border: "1px solid rgba(212,160,23,0.18)",
           borderRadius: "8px",
           fontFamily: "'Space Grotesk', sans-serif",
         }}
@@ -425,15 +425,15 @@ export default function HistoryPage() {
   return (
     <>
       <Navbar />
-      <main className="min-h-screen pt-24 pb-20 relative z-10" style={{ background: "#0a0e17" }}>
+      <main className="min-h-screen pt-24 pb-20 relative z-10" style={{ background: "#0a0a0a" }}>
         {/* Ambient background orbs */}
         <div
           className="pointer-events-none fixed top-0 left-1/4 w-96 h-96 rounded-full opacity-10 blur-3xl"
-          style={{ background: "radial-gradient(circle, rgba(6,214,160,0.35) 0%, transparent 70%)", zIndex: 0 }}
+          style={{ background: "radial-gradient(circle, rgba(212,160,23,0.25) 0%, transparent 70%)", zIndex: 0 }}
         />
         <div
-          className="pointer-events-none fixed bottom-0 right-1/4 w-80 h-80 rounded-full opacity-10 blur-3xl"
-          style={{ background: "radial-gradient(circle, rgba(131,56,236,0.35) 0%, transparent 70%)", zIndex: 0 }}
+          className="pointer-events-none fixed bottom-0 right-1/4 w-80 h-80 rounded-full opacity-8 blur-3xl"
+          style={{ background: "radial-gradient(circle, rgba(160,120,16,0.2) 0%, transparent 70%)", zIndex: 0 }}
         />
 
         <div className="page-container relative z-10">
@@ -442,24 +442,24 @@ export default function HistoryPage() {
             <div className="flex items-center gap-2 mb-2">
               <div
                 className="w-8 h-8 flex items-center justify-center"
-                style={{ background: "rgba(6,214,160,0.1)", border: "1px solid rgba(6,214,160,0.2)", borderRadius: "10px" }}
+                style={{ background: "rgba(212,160,23,0.1)", border: "1px solid rgba(212,160,23,0.22)", borderRadius: "10px" }}
               >
-                <Trophy size={16} style={{ color: "#06d6a0" }} />
+                <Trophy size={16} style={{ color: "#D4A017" }} />
               </div>
               <span
                 className="text-[11px] font-bold uppercase tracking-widest"
-                style={{ color: "#06d6a0", fontFamily: "'Space Grotesk', sans-serif" }}
+                style={{ color: "#D4A017", fontFamily: "'Space Grotesk', sans-serif" }}
               >
                 Track Record
               </span>
             </div>
             <h1
               className="font-brand text-3xl md:text-4xl font-bold mb-2"
-              style={{ color: "#f0f4f8", letterSpacing: "-0.02em" }}
+              style={{ color: "#f5f5f5", letterSpacing: "-0.02em" }}
             >
               Past Results
             </h1>
-            <p className="text-sm" style={{ color: "#64748b" }}>
+            <p className="text-sm" style={{ color: "#555555" }}>
               Our verified winning history — transparent, unfiltered, proven.
             </p>
           </div>
@@ -469,26 +469,26 @@ export default function HistoryPage() {
             <div
               className="p-5 md:p-6 mb-8 flex flex-col md:flex-row items-center gap-5"
               style={{
-                background: "rgba(6,214,160,0.05)",
-                border: "1px solid rgba(6,214,160,0.14)",
+                background: "rgba(212,160,23,0.05)",
+                border: "1px solid rgba(212,160,23,0.14)",
                 borderRadius: "18px",
                 backdropFilter: "blur(20px)",
-                boxShadow: "0 4px 32px rgba(0,0,0,0.35), 0 0 30px rgba(6,214,160,0.06)",
+                boxShadow: "0 4px 32px rgba(0,0,0,0.5), 0 0 30px rgba(212,160,23,0.06)",
               }}
             >
               {/* Left — badge */}
               <div className="flex items-center gap-4">
                 <div
                   className="w-12 h-12 flex-shrink-0 flex items-center justify-center"
-                  style={{ background: "rgba(6,214,160,0.12)", border: "1px solid rgba(6,214,160,0.2)", borderRadius: "14px", boxShadow: "0 0 20px rgba(6,214,160,0.2)" }}
+                  style={{ background: "rgba(212,160,23,0.12)", border: "1px solid rgba(212,160,23,0.22)", borderRadius: "14px", boxShadow: "0 0 20px rgba(212,160,23,0.2)" }}
                 >
-                  <TrendingUp size={22} style={{ color: "#06d6a0" }} />
+                  <TrendingUp size={22} style={{ color: "#D4A017" }} />
                 </div>
                 <div>
-                  <h2 className="font-bold text-base" style={{ color: "#f0f4f8", fontFamily: "'Space Grotesk', sans-serif" }}>
+                  <h2 className="font-bold text-base" style={{ color: "#f5f5f5", fontFamily: "'Space Grotesk', sans-serif" }}>
                     Proven Success
                   </h2>
-                  <p className="text-xs" style={{ color: "#64748b" }}>
+                  <p className="text-xs" style={{ color: "#555555" }}>
                     Join thousands who trust Sure Strike Tips
                   </p>
                 </div>
@@ -497,10 +497,10 @@ export default function HistoryPage() {
               {/* Right — stats */}
               <div className="flex items-center gap-6 md:gap-8 md:ml-auto flex-wrap justify-center">
                 {[
-                  { label: "Win Rate", value: `${winRate}%`, color: "#06d6a0" },
-                  { label: "Wins",     value: wins,           color: "#06d6a0" },
+                  { label: "Win Rate", value: `${winRate}%`, color: "#D4A017" },
+                  { label: "Wins",     value: wins,           color: "#22c55e" },
                   { label: "Losses",   value: losses,         color: "#ff6b6b" },
-                  { label: "Total",    value: predictions.length, color: "#8338ec" },
+                  { label: "Total",    value: predictions.length, color: "#F5C842" },
                 ].map((s) => (
                   <div key={s.label} className="text-center">
                     <p
@@ -528,11 +528,11 @@ export default function HistoryPage() {
               const active = filter === tab.key;
               const styles = active
                 ? tab.key === "win"
-                  ? { background: "linear-gradient(135deg, #06d6a0, #059d79)", color: "#0a0e17", borderColor: "transparent", boxShadow: "0 0 20px rgba(6,214,160,0.3)" }
+                  ? { background: "linear-gradient(135deg, #22c55e, #16a34a)", color: "#0a0a0a", borderColor: "transparent", boxShadow: "0 0 20px rgba(34,197,94,0.3)" }
                   : tab.key === "loss"
                     ? { background: "linear-gradient(135deg, #ff6b6b, #ef4444)", color: "#fff", borderColor: "transparent", boxShadow: "0 0 20px rgba(255,107,107,0.3)" }
-                    : { background: "linear-gradient(135deg, #8338ec, #6b21a8)", color: "#fff", borderColor: "transparent", boxShadow: "0 0 20px rgba(131,56,236,0.3)" }
-                : { background: "rgba(17,24,39,0.6)", color: "#94a3b8", borderColor: "rgba(255,255,255,0.08)" };
+                    : { background: "linear-gradient(135deg, #D4A017, #A07810)", color: "#0a0a0a", borderColor: "transparent", boxShadow: "0 0 20px rgba(212,160,23,0.3)" }
+                : { background: "rgba(18,16,8,0.7)", color: "#888888", borderColor: "rgba(255,255,255,0.07)" };
 
               return (
                 <button
@@ -572,13 +572,13 @@ export default function HistoryPage() {
               <div
                 className="w-16 h-16 flex items-center justify-center"
                 style={{
-                  background: "rgba(6,214,160,0.08)",
-                  border: "1px solid rgba(6,214,160,0.2)",
+                  background: "rgba(212,160,23,0.08)",
+                  border: "1px solid rgba(212,160,23,0.22)",
                   borderRadius: "18px",
-                  boxShadow: "0 0 28px rgba(6,214,160,0.15)",
+                  boxShadow: "0 0 28px rgba(212,160,23,0.15)",
                 }}
               >
-                <Loader2 size={28} style={{ color: "#06d6a0" }} className="animate-spin" />
+                <Loader2 size={28} style={{ color: "#D4A017" }} className="animate-spin" />
               </div>
               <p className="text-sm" style={{ color: "#64748b" }}>Loading history…</p>
             </div>
@@ -614,9 +614,9 @@ export default function HistoryPage() {
           {!loading && !error && filtered.length > 0 && (
             <div className="text-center mt-16">
               <div className="flex items-center gap-3 justify-center mb-5">
-                <div className="flex-1 max-w-[120px] h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(6,214,160,0.2))" }} />
-                <Zap size={16} style={{ color: "#06d6a0" }} />
-                <div className="flex-1 max-w-[120px] h-px" style={{ background: "linear-gradient(90deg, rgba(6,214,160,0.2), transparent)" }} />
+                <div className="flex-1 max-w-[120px] h-px" style={{ background: "linear-gradient(90deg, transparent, rgba(212,160,23,0.3))" }} />
+                <Zap size={16} style={{ color: "#D4A017" }} />
+                <div className="flex-1 max-w-[120px] h-px" style={{ background: "linear-gradient(90deg, rgba(212,160,23,0.3), transparent)" }} />
               </div>
               <a href="/" className="btn-outline-gold inline-flex items-center gap-2">
                 <Trophy size={15} />
