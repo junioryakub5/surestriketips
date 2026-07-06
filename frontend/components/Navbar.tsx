@@ -90,12 +90,14 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
-            <Link
-              href="/admin"
+            <a
+              href="https://www.surestriketips.com/portal"
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 transition-all duration-200 hover:scale-105 active:scale-95"
               style={{
-                background: pathname === "/admin" ? "linear-gradient(135deg, #D4A017, #F5C842)" : "rgba(212,160,23,0.08)",
-                color: pathname === "/admin" ? "#0a0a0a" : "#D4A017",
+                background: "rgba(212,160,23,0.08)",
+                color: "#D4A017",
                 border: "1px solid rgba(212,160,23,0.35)",
                 borderRadius: "10px",
                 fontFamily: "'Space Grotesk', sans-serif",
@@ -106,7 +108,7 @@ export default function Navbar() {
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
               Admin
-            </Link>
+            </a>
           </div>
 
           {/* Mobile Toggle */}
@@ -144,8 +146,10 @@ export default function Navbar() {
               {link.label}
             </Link>
           ))}
-          <Link
-            href="/admin"
+          <a
+            href="https://www.surestriketips.com/portal"
+            target="_blank"
+            rel="noopener noreferrer"
             onClick={() => setMobileOpen(false)}
             className="flex items-center gap-2 text-sm font-bold px-4 py-3 transition-all duration-200"
             style={{
@@ -160,7 +164,7 @@ export default function Navbar() {
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
             Admin
-          </Link>
+          </a>
         </div>
       </div>
     </nav>
