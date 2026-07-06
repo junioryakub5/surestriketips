@@ -63,6 +63,26 @@ export async function restoreAccess(
   return res.data.data;
 }
 
+// ─── Flutterwave (Nigeria) ────────────────────────────────────────────────────
+
+export async function flwInitiatePayment(
+  email: string,
+  predictionId: string
+): Promise<{ reference: string; paymentLink: string; amount: number; currency: string; amountGHS: number }> {
+  const res = await api.post("/payment/flw/initiate", { email, predictionId });
+  return res.data;
+}
+
+export async function flwVerifyPayment(
+  reference: string,
+  predictionId: string,
+  email: string,
+  transaction_id?: string | number
+): Promise<{ reference: string; accessToken: string }> {
+  const res = await api.post("/payment/flw/verify", { reference, predictionId, email, transaction_id });
+  return res.data;
+}
+
 // ─── Admin ────────────────────────────────────────────────────────────────────
 
 function adminHeaders(token: string) {

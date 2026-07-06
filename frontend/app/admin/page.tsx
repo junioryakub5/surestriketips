@@ -133,6 +133,7 @@ function OverviewSection({ token }: { token: string }) {
   const [stats, setStats] = useState<{
     totalSlips: number; activeSlips: number; completedSlips: number;
     totalRevenue: number; totalSales: number; recentActivity: RecentActivity[];
+    ghanaRevenue: number; nigeriaRevenue: number; ghanaSales: number; nigeriaSales: number;
   } | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -146,7 +147,7 @@ function OverviewSection({ token }: { token: string }) {
   const statCards = [
     { label: "Total Slips", value: stats.totalSlips, icon: FileText, color: "#c9a84c" },
     { label: "Active Slips", value: stats.activeSlips, icon: Activity, color: "#22c55e" },
-    { label: "Total Revenue", value: `GHS ${stats.totalRevenue.toFixed(2)}`, icon: DollarSign, color: "#22c55e" },
+    { label: "Total Revenue", value: `GHS ${stats.ghanaRevenue.toFixed(2)}`, icon: DollarSign, color: "#22c55e" },
     { label: "Total Sales", value: stats.totalSales, icon: TrendingUp, color: "#c9a84c" },
   ];
 
@@ -163,22 +164,46 @@ function OverviewSection({ token }: { token: string }) {
           </div>
         ))}
       </div>
+
+      {/* Ghana vs Nigeria revenue breakdown */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Ghana — Paystack */}
         <div className="admin-card p-5">
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2"><Globe2 size={16} style={{ color: "#22c55e" }} /><h3 style={{ color: "#faf5ef" }} className="font-semibold text-sm">Ghana Payments</h3></div>
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🇬🇭</span>
+              <h3 style={{ color: "#faf5ef" }} className="font-semibold text-sm">Ghana Payments</h3>
+              <span className="text-[9px] font-bold px-2 py-0.5 uppercase tracking-wider" style={{ background: "rgba(34,197,94,0.08)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.2)", borderRadius: "6px" }}>Paystack</span>
+            </div>
           </div>
-          <div className="flex justify-between text-sm mb-2"><span style={{ color: "#78716c" }}>Revenue:</span><span className="font-bold" style={{ color: "#22c55e" }}>GHS {stats.totalRevenue.toFixed(2)}</span></div>
-          <div className="flex justify-between text-sm"><span style={{ color: "#78716c" }}>Sales:</span><span className="font-semibold" style={{ color: "#faf5ef" }}>{stats.totalSales}</span></div>
+          <div className="flex justify-between text-sm mb-2"><span style={{ color: "#78716c" }}>Revenue:</span><span className="font-bold" style={{ color: "#22c55e" }}>GHS {stats.ghanaRevenue.toFixed(2)}</span></div>
+          <div className="flex justify-between text-sm"><span style={{ color: "#78716c" }}>Sales:</span><span className="font-semibold" style={{ color: "#faf5ef" }}>{stats.ghanaSales}</span></div>
         </div>
+
+        {/* Nigeria — Flutterwave */}
         <div className="admin-card p-5">
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2"><BarChart2 size={16} style={{ color: "#c9a84c" }} /><h3 style={{ color: "#faf5ef" }} className="font-semibold text-sm">Slip Overview</h3></div>
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🇳🇬</span>
+              <h3 style={{ color: "#faf5ef" }} className="font-semibold text-sm">Nigeria Payments</h3>
+              <span className="text-[9px] font-bold px-2 py-0.5 uppercase tracking-wider" style={{ background: "rgba(201,168,76,0.08)", color: "#c9a84c", border: "1px solid rgba(201,168,76,0.2)", borderRadius: "6px" }}>Flutterwave</span>
+            </div>
           </div>
-          <div className="flex justify-between text-sm mb-2"><span style={{ color: "#78716c" }}>Active:</span><span className="font-bold" style={{ color: "#c9a84c" }}>{stats.activeSlips}</span></div>
-          <div className="flex justify-between text-sm"><span style={{ color: "#78716c" }}>Completed:</span><span className="font-semibold" style={{ color: "#a8a29e" }}>{stats.completedSlips}</span></div>
+          <div className="flex justify-between text-sm mb-2"><span style={{ color: "#78716c" }}>Revenue:</span><span className="font-bold" style={{ color: "#c9a84c" }}>₦{stats.nigeriaRevenue.toLocaleString()}</span></div>
+          <div className="flex justify-between text-sm"><span style={{ color: "#78716c" }}>Sales:</span><span className="font-semibold" style={{ color: "#faf5ef" }}>{stats.nigeriaSales}</span></div>
         </div>
       </div>
+
+      {/* Slip overview */}
+      <div className="admin-card p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2"><BarChart2 size={16} style={{ color: "#c9a84c" }} /><h3 style={{ color: "#faf5ef" }} className="font-semibold text-sm">Slip Overview</h3></div>
+        </div>
+        <div className="flex justify-between text-sm mb-2"><span style={{ color: "#78716c" }}>Active:</span><span className="font-bold" style={{ color: "#c9a84c" }}>{stats.activeSlips}</span></div>
+        <div className="flex justify-between text-sm"><span style={{ color: "#78716c" }}>Completed:</span><span className="font-semibold" style={{ color: "#a8a29e" }}>{stats.completedSlips}</span></div>
+      </div>
+
+      {/* Recent activity */}
       <div className="admin-card overflow-hidden">
         <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(201,168,76,0.06)" }}><h3 style={{ color: "#faf5ef" }} className="font-semibold text-sm">Recent Activity</h3></div>
         {stats.recentActivity.length === 0 ? (
@@ -189,11 +214,16 @@ function OverviewSection({ token }: { token: string }) {
               <div key={act._id} className="flex items-center justify-between px-5 py-3.5 transition-colors hover:bg-white/[0.01]">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: "rgba(201,168,76,0.1)", color: "#c9a84c" }}>{act.email[0].toUpperCase()}</div>
-                  <div><p style={{ color: "#a8a29e" }} className="text-sm font-medium">{act.email}</p><p className="text-xs" style={{ color: "#57534e" }}>{act.predictionTitle}</p></div>
+                  <div>
+                    <p style={{ color: "#a8a29e" }} className="text-sm font-medium">{act.email}</p>
+                    <p className="text-xs" style={{ color: "#57534e" }}>{act.predictionTitle}</p>
+                  </div>
                 </div>
                 <div className="text-right">
-                  <p className={`text-sm font-bold ${act.status === "success" ? "text-emerald-400" : "text-red-400"}`}>{act.currency} {act.amount}</p>
-                  <p className="text-xs" style={{ color: "#57534e" }}>{act.status}</p>
+                  <p className={`text-sm font-bold ${act.status === "success" ? "text-emerald-400" : "text-red-400"}`}>
+                    {act.provider === "flutterwave" ? "🇳🇬" : "🇬🇭"} {act.currency} {act.amount}
+                  </p>
+                  <p className="text-xs" style={{ color: "#57534e" }}>{act.provider === "flutterwave" ? "Flutterwave" : "Paystack"}</p>
                 </div>
               </div>
             ))}
@@ -403,6 +433,24 @@ function ManageSlipsSection({ token }: { token: string }) {
   );
 }
 
+function ProviderBadge({ provider }: { provider?: string }) {
+  const isFlw = provider === "flutterwave";
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 uppercase tracking-wider"
+      style={{
+        background: isFlw ? "rgba(201,168,76,0.08)" : "rgba(34,197,94,0.08)",
+        color: isFlw ? "#c9a84c" : "#22c55e",
+        border: `1px solid ${isFlw ? "rgba(201,168,76,0.2)" : "rgba(34,197,94,0.2)"}`,
+        borderRadius: "6px",
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
+      }}
+    >
+      {isFlw ? "🇳🇬 FLW" : "🇬🇭 PSK"}
+    </span>
+  );
+}
+
 function PaymentsSection({ token }: { token: string }) {
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [total, setTotal] = useState(0);
@@ -425,25 +473,36 @@ function PaymentsSection({ token }: { token: string }) {
         ) : filtered.length === 0 ? (<div className="py-16 text-center text-sm" style={{ color: "#78716c" }}>No payments found.</div>
         ) : (
           <>
+            {/* Mobile list */}
             <div className="md:hidden divide-y" style={{ borderColor: "rgba(201,168,76,0.04)" }}>
               {filtered.map(pmt => (
                 <div key={pmt._id} className="px-4 py-4">
                   <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2"><div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: "rgba(201,168,76,0.1)", color: "#c9a84c" }}>{pmt.email[0].toUpperCase()}</div><span className="text-sm truncate max-w-[160px]" style={{ color: "#a8a29e" }}>{pmt.email}</span></div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: "rgba(201,168,76,0.1)", color: "#c9a84c" }}>{pmt.email[0].toUpperCase()}</div>
+                      <span className="text-sm truncate max-w-[140px]" style={{ color: "#a8a29e" }}>{pmt.email}</span>
+                    </div>
                     <span className={`font-bold text-sm ${pmt.status === "success" ? "text-emerald-400" : "text-red-400"}`}>{pmt.currency} {pmt.amount}</span>
                   </div>
-                  <div className="flex items-center gap-2 mt-1.5 ml-9"><StatusBadge status={pmt.status} /><span className="text-xs truncate" style={{ color: "#57534e" }}>{pmt.predictionTitle}</span><span className="text-xs ml-auto" style={{ color: "#57534e" }}>{new Date(pmt.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span></div>
+                  <div className="flex items-center gap-2 mt-1.5 ml-9">
+                    <ProviderBadge provider={pmt.provider} />
+                    <StatusBadge status={pmt.status} />
+                    <span className="text-xs truncate" style={{ color: "#57534e" }}>{pmt.predictionTitle}</span>
+                    <span className="text-xs ml-auto" style={{ color: "#57534e" }}>{new Date(pmt.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>
+                  </div>
                 </div>
               ))}
             </div>
+            {/* Desktop table */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
-                <thead><tr style={{ borderBottom: "1px solid rgba(201,168,76,0.06)" }}>{["Customer", "Slip", "Reference", "Amount", "Status", "Date"].map(h => (<th key={h} className="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-widest" style={{ color: "#78716c", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "0.6rem" }}>{h}</th>))}</tr></thead>
+                <thead><tr style={{ borderBottom: "1px solid rgba(201,168,76,0.06)" }}>{["Customer", "Slip", "Provider", "Reference", "Amount", "Status", "Date"].map(h => (<th key={h} className="px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-widest" style={{ color: "#78716c", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: "0.6rem" }}>{h}</th>))}</tr></thead>
                 <tbody className="divide-y" style={{ borderColor: "rgba(201,168,76,0.04)" }}>
                   {filtered.map(pmt => (
                     <tr key={pmt._id} className="transition-colors hover:bg-white/[0.01]">
                       <td className="px-5 py-4"><div className="flex items-center gap-2.5"><div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: "rgba(201,168,76,0.1)", color: "#c9a84c" }}>{pmt.email[0].toUpperCase()}</div><span className="text-sm" style={{ color: "#a8a29e" }}>{pmt.email}</span></div></td>
-                      <td className="px-5 py-4 text-sm max-w-[160px] truncate" style={{ color: "#a8a29e" }}>{pmt.predictionTitle}</td>
+                      <td className="px-5 py-4 text-sm max-w-[140px] truncate" style={{ color: "#a8a29e" }}>{pmt.predictionTitle}</td>
+                      <td className="px-5 py-4"><ProviderBadge provider={pmt.provider} /></td>
                       <td className="px-5 py-4 text-xs font-mono" style={{ color: "#57534e" }}>{pmt.reference}</td>
                       <td className="px-5 py-4"><span className={`font-bold text-sm ${pmt.status === "success" ? "text-emerald-400" : "text-red-400"}`}>{pmt.currency} {pmt.amount}</span></td>
                       <td className="px-5 py-4"><StatusBadge status={pmt.status} /></td>

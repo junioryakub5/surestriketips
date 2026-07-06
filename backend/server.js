@@ -68,6 +68,7 @@ app.use('/api/', generalLimiter);
 
 // Body parsing — IMPORTANT: raw body needed for webhook HMAC verification
 app.use('/api/payment/webhook', express.raw({ type: 'application/json' }));
+app.use('/api/payment/flw/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '10mb' }));
 
 // ─── Admin auth ───────────────────────────────────────────────────────────────
@@ -131,7 +132,8 @@ const toP = r => r ? ({ _id:r.id, match:r.match, league:r.league, odds:r.odds,
 
 const toMoney = r => r ? ({ _id:r.id, predictionId:r.prediction_id, predictionTitle:r.prediction_title,
   reference:r.reference, email:r.email, amount:r.amount, currency:r.currency,
-  status:r.status, accessToken:r.access_token, createdAt:r.created_at }) : null;
+  status:r.status, accessToken:r.access_token, createdAt:r.created_at,
+  provider:r.provider||'paystack' }) : null;
 
 // ─── DB helpers (Supabase or in-memory) ──────────────────────────────────────
 const db = {
@@ -244,6 +246,7 @@ const db = {
         reference:data.reference, email:data.email.toLowerCase().trim(),
         amount:data.amount, currency:data.currency||'GHS',
         status:data.status, access_token:data.accessToken||uuidv4(),
+        provider:data.provider||'paystack',
       }).select().single();
       if (error) throw error;
       return toMoney(d);
@@ -277,28 +280,34 @@ const db = {
         supabase.from('predictions').select('*',{count:'exact',head:true}),
         supabase.from('predictions').select('*',{count:'exact',head:true}).eq('status','active'),
         supabase.from('predictions').select('*',{count:'exact',head:true}).eq('status','completed'),
-        // Count of successful transactions
         supabase.from('payments').select('*',{count:'exact',head:true}).eq('status','success'),
-        // Fetch only the amount column — no row cap workaround via a high limit
-        supabase.from('payments').select('amount').eq('status','success').limit(100000),
-        // Only last 20 records for the activity feed
+        // Fetch amount + currency + provider for revenue breakdown
+        supabase.from('payments').select('amount,currency,provider').eq('status','success').limit(100000),
         supabase.from('payments').select('*').eq('status','success')
           .order('created_at',{ascending:false}).limit(20),
       ]);
-      const totalRevenue = (amountRows||[]).reduce((s,r)=>s+(r.amount||0), 0);
-      const recentPayments = (recentRows||[]).map(toMoney);
-      return { total, active, completed, totalRevenue, salesCount, recentPayments };
+      const rows = amountRows || [];
+      const totalRevenue    = rows.reduce((s,r) => s + (r.amount||0), 0);
+      const ghanaRevenue    = rows.filter(r => (r.provider||'paystack')==='paystack').reduce((s,r) => s + (r.amount||0), 0);
+      const nigeriaRevenue  = rows.filter(r => r.provider==='flutterwave').reduce((s,r) => s + (r.amount||0), 0);
+      const ghanaSales      = rows.filter(r => (r.provider||'paystack')==='paystack').length;
+      const nigeriaSales    = rows.filter(r => r.provider==='flutterwave').length;
+      const recentPayments  = (recentRows||[]).map(toMoney);
+      return { total, active, completed, totalRevenue, salesCount, recentPayments, ghanaRevenue, nigeriaRevenue, ghanaSales, nigeriaSales };
     }
     const payments = memPayments.filter(p => p.status==='success');
-    const totalRevenue = payments.reduce((s,p)=>s+(p.amount||0),0);
-    const recentPayments = [...payments].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).slice(0,20);
+    const totalRevenue   = payments.reduce((s,p) => s+(p.amount||0), 0);
+    const ghanaRevenue   = payments.filter(p => (p.provider||'paystack')==='paystack').reduce((s,p) => s+(p.amount||0), 0);
+    const nigeriaRevenue = payments.filter(p => p.provider==='flutterwave').reduce((s,p) => s+(p.amount||0), 0);
+    const ghanaSales     = payments.filter(p => (p.provider||'paystack')==='paystack').length;
+    const nigeriaSales   = payments.filter(p => p.provider==='flutterwave').length;
+    const recentPayments = [...payments].sort((a,b) => new Date(b.createdAt)-new Date(a.createdAt)).slice(0,20);
     return {
       total:memPredictions.length,
       active:memPredictions.filter(p=>p.status==='active').length,
       completed:memPredictions.filter(p=>p.status==='completed').length,
-      totalRevenue,
-      salesCount: payments.length,
-      recentPayments,
+      totalRevenue, salesCount: payments.length,
+      recentPayments, ghanaRevenue, nigeriaRevenue, ghanaSales, nigeriaSales,
     };
   },
 };
@@ -552,6 +561,191 @@ app.post('/api/payment/webhook', async (req, res) => {
   }
 });
 
+// ─── Routes: Flutterwave (Nigeria — NGN) ────────────────────────────────────
+app.post('/api/payment/flw/initiate', paymentLimiter, async (req, res) => {
+  try {
+    const { email, predictionId } = req.body;
+    if (!email || !predictionId) return res.status(400).json({ error: 'email and predictionId required' });
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) return res.status(400).json({ error: 'Invalid email format' });
+
+    const prediction = await db.findPredictionById(predictionId);
+    if (!prediction) return res.status(404).json({ error: 'Prediction not found' });
+
+    const FLW_SECRET = process.env.FLW_SECRET_KEY;
+    if (!FLW_SECRET) return res.status(503).json({ error: 'Flutterwave not configured' });
+
+    // Convert GHS price → NGN (1 GHS ≈ 125 NGN — update RATE_GHS_NGN in .env as needed)
+    const GHS_TO_NGN = parseFloat(process.env.RATE_GHS_NGN || '125');
+    const amountNGN  = Math.round(prediction.price * GHS_TO_NGN);
+
+    const reference = `SST_FLW_${uuidv4().replace(/-/g,'').slice(0,16)}`;
+
+    const { data: flwRes } = await axios.post(
+      'https://api.flutterwave.com/v3/payments',
+      {
+        tx_ref: reference,
+        amount: amountNGN,
+        currency: 'NGN',
+        redirect_url: `${process.env.CLIENT_URL && process.env.CLIENT_URL !== '*' ? process.env.CLIENT_URL.split(',')[0].trim() : 'https://surestriketips.vercel.app'}/unlock/${reference}`,
+        customer: { email: email.toLowerCase().trim() },
+        meta: { predictionId, match: prediction.match },
+        customizations: {
+          title: 'SureStrikeTips',
+          description: `Unlock: ${prediction.match}`,
+          logo: 'https://surestriketips.vercel.app/logo.png',
+        },
+        payment_options: 'card,banktransfer,ussd,mobilemoneyghana',
+      },
+      { headers: { Authorization: `Bearer ${FLW_SECRET}`, 'Content-Type': 'application/json' } }
+    );
+
+    if (flwRes.status !== 'success') {
+      console.error('FLW initiate failed:', flwRes.message);
+      return res.status(502).json({ error: 'Flutterwave initialization failed. Please try again.' });
+    }
+
+    console.log('FLW payment initiated — ref:', reference, 'amount NGN:', amountNGN);
+    res.json({
+      success: true,
+      reference,
+      paymentLink: flwRes.data.link,
+      amount: amountNGN,
+      currency: 'NGN',
+      amountGHS: prediction.price,
+    });
+  } catch (err) {
+    console.error('FLW initiate error:', err.response?.data || err.message);
+    safeError(res, 500, 'Flutterwave initialization failed', err);
+  }
+});
+
+app.post('/api/payment/flw/verify', paymentLimiter, async (req, res) => {
+  try {
+    const { reference, predictionId, email, transaction_id } = req.body;
+    if (!reference || !predictionId) return res.status(400).json({ error: 'reference and predictionId required' });
+
+    // Idempotency — already recorded?
+    const existing = await db.findPayment({ reference, status:'success' });
+    if (existing) return res.json({ success:true, reference:existing.reference, accessToken:existing.accessToken, message:'Already verified' });
+
+    const FLW_SECRET = process.env.FLW_SECRET_KEY;
+    if (!FLW_SECRET) return res.status(503).json({ error: 'Flutterwave not configured' });
+
+    // Prefer transaction_id lookup (more reliable), fallback to tx_ref search
+    let txn;
+    try {
+      if (transaction_id) {
+        const { data: r } = await axios.get(
+          `https://api.flutterwave.com/v3/transactions/${transaction_id}/verify`,
+          { headers: { Authorization: `Bearer ${FLW_SECRET}` } }
+        );
+        txn = r.data;
+      } else {
+        const { data: r } = await axios.get(
+          `https://api.flutterwave.com/v3/transactions?tx_ref=${encodeURIComponent(reference)}`,
+          { headers: { Authorization: `Bearer ${FLW_SECRET}` } }
+        );
+        txn = r.data?.[0];
+      }
+    } catch (axiosErr) {
+      console.error('FLW verify axios error:', axiosErr.response?.data || axiosErr.message);
+      return res.status(402).json({ error: 'Flutterwave verification failed. Please contact support.' });
+    }
+
+    console.log('FLW txn status:', txn?.status, '| ref:', reference);
+
+    if (!txn || txn.status !== 'successful') {
+      return res.status(402).json({ error: `Payment not successful. Status: ${txn?.status || 'unknown'}` });
+    }
+
+    // Validate amount
+    const prediction = await db.findPredictionById(predictionId);
+    if (!prediction) return res.status(404).json({ error: 'Prediction not found' });
+
+    const GHS_TO_NGN = parseFloat(process.env.RATE_GHS_NGN || '125');
+    const expectedNGN = Math.round(prediction.price * GHS_TO_NGN);
+    if (txn.amount < expectedNGN) {
+      console.error(`FLW AMOUNT MISMATCH! Expected ${expectedNGN} NGN, got ${txn.amount}. Ref: ${reference}`);
+      return res.status(402).json({ error: 'Payment amount mismatch. Please contact support.' });
+    }
+
+    const accessToken = uuidv4();
+    try {
+      await db.createPayment({
+        predictionId, predictionTitle: prediction.match, reference,
+        email: (email || txn.customer?.email || '').toLowerCase().trim(),
+        amount: txn.amount, currency: txn.currency || 'NGN',
+        status: 'success', accessToken, provider: 'flutterwave',
+      });
+    } catch (insertErr) {
+      if (insertErr?.message?.includes('unique constraint') || insertErr?.code === '23505') {
+        const saved = await db.findPayment({ reference, status:'success' });
+        if (saved) return res.json({ success:true, reference:saved.reference, accessToken:saved.accessToken });
+      }
+      throw insertErr;
+    }
+
+    console.log('FLW payment verified OK — ref:', reference, 'amount:', txn.amount, txn.currency);
+    res.json({ success:true, reference, accessToken });
+  } catch (err) {
+    console.error('FLW verify error:', err.message);
+    safeError(res, 500, 'Flutterwave verification failed', err);
+  }
+});
+
+// Flutterwave webhook — server-to-server, signature-verified
+app.post('/api/payment/flw/webhook', async (req, res) => {
+  try {
+    const secret = process.env.FLW_WEBHOOK_SECRET;
+    const signature = req.headers['verif-hash'];
+
+    if (secret && signature && signature !== secret) {
+      console.error('FLW Webhook: invalid signature');
+      return res.sendStatus(401);
+    }
+
+    const event = JSON.parse(req.body.toString());
+    console.log('FLW Webhook event:', event.event, '| ref:', event.data?.tx_ref);
+
+    if (event.event === 'charge.completed' && event.data?.status === 'successful') {
+      const txn = event.data;
+      const reference = txn.tx_ref;
+
+      const existing = await db.findPayment({ reference, status:'success' });
+      if (existing) { console.log('FLW Webhook: already processed ref:', reference); return res.sendStatus(200); }
+
+      const predictionId = txn.meta?.predictionId;
+      if (!predictionId) { console.error('FLW Webhook: no predictionId for ref:', reference); return res.sendStatus(200); }
+
+      const prediction = await db.findPredictionById(predictionId);
+      if (!prediction) { console.error('FLW Webhook: prediction not found for ref:', reference); return res.sendStatus(200); }
+
+      const GHS_TO_NGN = parseFloat(process.env.RATE_GHS_NGN || '125');
+      const expectedNGN = Math.round(prediction.price * GHS_TO_NGN);
+      if (txn.amount < expectedNGN) {
+        console.error(`FLW Webhook: amount mismatch! Expected ${expectedNGN}, got ${txn.amount}. Ref: ${reference}`);
+        return res.sendStatus(200);
+      }
+
+      const accessToken = uuidv4();
+      await db.createPayment({
+        predictionId, predictionTitle: prediction.match, reference,
+        email: (txn.customer?.email || '').toLowerCase().trim(),
+        amount: txn.amount, currency: txn.currency || 'NGN',
+        status: 'success', accessToken, provider: 'flutterwave',
+      });
+      console.log('FLW Webhook: payment recorded — ref:', reference);
+    }
+
+    res.sendStatus(200);
+  } catch (err) {
+    console.error('FLW Webhook error:', err.message);
+    res.sendStatus(500);
+  }
+});
+
 app.post('/api/payment/restore', paymentLimiter, async (req, res) => {
   try {
     const { email, predictionId } = req.body;
@@ -668,14 +862,20 @@ const REVENUE_OFFSET = parseFloat(process.env.REVENUE_OFFSET || '0');
 
 app.get('/api/admin/stats', adminAuth, async (req, res) => {
   try {
-    const { total, active, completed, totalRevenue, salesCount, recentPayments } = await db.stats();
+    const { total, active, completed, totalRevenue, salesCount, recentPayments,
+            ghanaRevenue, nigeriaRevenue, ghanaSales, nigeriaSales } = await db.stats();
     const recentActivity = (recentPayments||[]).map(p => ({
       _id:p._id, email:p.email, predictionTitle:p.predictionTitle||'—',
       amount:p.amount, currency:p.currency||'GHS', status:p.status, createdAt:p.createdAt,
+      provider:p.provider||'paystack',
     }));
     res.json({ success:true, data:{
       totalSlips:total, activeSlips:active, completedSlips:completed,
       totalRevenue: totalRevenue + REVENUE_OFFSET, totalSales:salesCount, recentActivity,
+      ghanaRevenue: (ghanaRevenue||0) + REVENUE_OFFSET,
+      nigeriaRevenue: nigeriaRevenue||0,
+      ghanaSales: ghanaSales||0,
+      nigeriaSales: nigeriaSales||0,
     }});
   } catch (err) { safeError(res, 500, 'Failed to load stats', err); }
 });

@@ -43,3 +43,8 @@ create index if not exists idx_payments_access_token on payments(access_token);
 
 -- Storage bucket (run separately if not created via UI)
 -- insert into storage.buckets (id, name, public) values ('surestriketips', 'surestriketips', true);
+
+-- ─── Migration: add provider column (run if upgrading existing DB) ─────────────
+alter table payments
+  add column if not exists provider text not null default 'paystack'
+    check (provider in ('paystack','flutterwave'));

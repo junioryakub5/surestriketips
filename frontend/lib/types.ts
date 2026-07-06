@@ -49,6 +49,7 @@ export interface RecentActivity {
   currency: string;
   predictionTitle: string;
   createdAt: string;
+  provider?: "paystack" | "flutterwave";
 }
 
 export interface PaymentRecord {
@@ -61,4 +62,5 @@ export interface PaymentRecord {
   predictionTitle: string;
   expiresAt: string;
   createdAt: string;
+  provider?: "paystack" | "flutterwave";
 }

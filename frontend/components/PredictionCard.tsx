@@ -4,13 +4,49 @@ import { useState, useEffect } from "react";
 import React from "react";
 import {
   Calendar, Lock, X, Loader2, Shield, Zap,
-  CheckCircle, Copy, Check, Trophy, RefreshCcw, Mail, ExternalLink,
+  CheckCircle, Trophy, RefreshCcw, Mail,
 } from "lucide-react";
 import { Prediction } from "@/lib/types";
-import { initiatePayment, verifyPayment, getUnlockedPrediction, restoreAccess } from "@/lib/api";
+import { initiatePayment, verifyPayment, getUnlockedPrediction, restoreAccess, flwInitiatePayment, flwVerifyPayment } from "@/lib/api";
 
 // ── Exchange rate: 1 GHS → NGN (update as needed) ────────────────────────────
 const GHS_TO_NGN = 125;
+
+// ── Flutterwave public key ────────────────────────────────────────────────────
+const FLW_PUBLIC_KEY =
+  process.env.NEXT_PUBLIC_FLW_PUBLIC_KEY ||
+  "FLWPUBK-70eccb05066294d46ac7c41d6138a48d-X";
+
+// Load Flutterwave inline JS dynamically
+function loadFlutterwave(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if ((window as any).FlutterwaveCheckout) return resolve();
+    const SCRIPT_URL = "https://checkout.flutterwave.com/v3.js";
+    if (document.querySelector(`script[src="${SCRIPT_URL}"]`)) {
+      const poll = setInterval(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if ((window as any).FlutterwaveCheckout) { clearInterval(poll); resolve(); }
+      }, 100);
+      setTimeout(() => { clearInterval(poll); reject(new Error("Flutterwave timed out")); }, 10000);
+      return;
+    }
+    const s = document.createElement("script");
+    s.src = SCRIPT_URL;
+    s.async = true;
+    s.onerror = () => reject(new Error("Could not load Flutterwave script."));
+    s.onload = () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if ((window as any).FlutterwaveCheckout) return resolve();
+      const poll = setInterval(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if ((window as any).FlutterwaveCheckout) { clearInterval(poll); resolve(); }
+      }, 50);
+      setTimeout(() => { clearInterval(poll); reject(new Error("FlutterwaveCheckout not ready")); }, 6000);
+    };
+    document.head.appendChild(s);
+  });
+}
 
 // ── Bet slip image thumbnail + lightbox ────────────────────────────────────────
 function BetSlipImage({ src, alt }: { src: string; alt: string }) {
@@ -225,27 +261,21 @@ function CountrySelectModal({
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5"><path d="M9 18l6-6-6-6"/></svg>
           </button>
 
-          {/* Nigeria — temporarily unavailable */}
-          <div
-            className="w-full flex items-center justify-between px-4 py-4"
-            style={{ background: "rgba(17,24,39,0.3)", border: "1px solid rgba(255,255,255,0.04)", borderRadius: "16px", opacity: 0.5, cursor: "not-allowed" }}
+          {/* Nigeria — Flutterwave */}
+          <button
+            onClick={onNigeria}
+            className="w-full flex items-center justify-between px-4 py-4 transition-all duration-200 active:scale-[0.98]"
+            style={{ background: "rgba(18,16,8,0.7)", border: "1px solid rgba(212,160,23,0.1)", borderRadius: "16px" }}
           >
             <div className="flex items-center gap-3">
-              <span className="text-2xl" style={{ filter: "grayscale(1)" }}>🇳🇬</span>
+              <span className="text-2xl">🇳🇬</span>
               <div className="text-left">
-                <div className="flex items-center gap-2">
-                  <p className="font-semibold text-sm" style={{ color: "#94a3b8" }}>Nigeria</p>
-                  <span
-                    className="text-[9px] font-bold px-2 py-0.5 uppercase tracking-wider"
-                    style={{ background: "rgba(245,158,11,0.1)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.2)", borderRadius: "6px", fontFamily: "'Space Grotesk', sans-serif" }}
-                  >
-                    Unavailable
-                  </span>
-                </div>
-                <p className="text-xs" style={{ color: "#475569" }}>Bank Transfer — coming soon</p>
+                <p className="font-semibold text-sm" style={{ color: "#f5f5f5" }}>Nigeria</p>
+                <p className="text-xs" style={{ color: "#555555" }}>₦{ngn.toLocaleString()} — Card / Bank Transfer / USSD</p>
               </div>
             </div>
-          </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
         </div>
 
         {/* Cancel */}
@@ -263,17 +293,21 @@ function CountrySelectModal({
   );
 }
 
-// ── Nigeria Bank Transfer Modal ───────────────────────────────────────────────
+// ── Nigeria Flutterwave Payment Modal ────────────────────────────────────────
 function NigeriaPaymentModal({
   prediction,
+  onSuccess,
   onClose,
 }: {
   prediction: Prediction;
+  onSuccess: (data: UnlockedData) => void;
   onClose: () => void;
 }) {
   const acc = ACCENT[prediction.oddsCategory] || ACCENT["2+"];
   const ngn = Math.round(prediction.price * GHS_TO_NGN);
-  const [copied, setCopied] = useState(false);
+  const [email, setEmail] = useState("");
+  const [step, setStep] = useState<"idle" | "paying" | "verifying">("idle");
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const scrollY = window.scrollY;
@@ -293,11 +327,105 @@ function NigeriaPaymentModal({
     };
   }, []);
 
-  const copyAccount = () => {
-    navigator.clipboard.writeText("6118783926");
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const finalizeUnlock = async (reference: string) => {
+    setStep("verifying");
+    setError("");
+    try {
+      const unlock = await getUnlockedPrediction(reference);
+      const data: UnlockedData = {
+        content: unlock.prediction.content || "",
+        bookingCode: (unlock.prediction as { bookingCode?: string }).bookingCode || "",
+        tips: (unlock.prediction as { tips?: string[] }).tips || [],
+        imageUrl: unlock.prediction.imageUrl || "",
+        reference,
+      };
+      saveUnlocked(prediction._id, data);
+      onSuccess(data);
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+        "Verification failed. Please contact support.";
+      setError(`${msg} (ref: ${reference})`);
+      setStep("idle");
+    }
   };
+
+  const handlePay = async () => {
+    if (!email || !email.includes("@")) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    setError("");
+    setStep("paying");
+    try {
+      await loadFlutterwave();
+      const initResult = await flwInitiatePayment(email, prediction._id);
+      const { reference } = initResult;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).FlutterwaveCheckout({
+        public_key: FLW_PUBLIC_KEY,
+        tx_ref: reference,
+        amount: initResult.amount,
+        currency: "NGN",
+        payment_options: "card,banktransfer,ussd",
+        customer: { email: email.toLowerCase().trim() },
+        customizations: {
+          title: "SureStrikeTips",
+          description: `Unlock: ${prediction.match}`,
+          logo: "https://surestriketips.vercel.app/logo.png",
+        },
+        callback: async (response: { status: string; tx_ref: string; transaction_id: string | number }) => {
+          if (response.status === "successful") {
+            try {
+              await flwVerifyPayment(reference, prediction._id, email, response.transaction_id);
+              await finalizeUnlock(reference);
+            } catch (err: unknown) {
+              const msg =
+                (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+                "Verification failed. Contact support.";
+              setError(`${msg} (ref: ${reference})`);
+              setStep("idle");
+            }
+          } else {
+            setError("Payment was not completed. Please try again.");
+            setStep("idle");
+          }
+        },
+        onclose: () => {
+          if (step === "paying") setStep("idle");
+        },
+      });
+    } catch (err: unknown) {
+      const msg = (err as Error)?.message || "Failed to open payment. Please try again.";
+      setError(msg);
+      setStep("idle");
+    }
+  };
+
+  if (step === "verifying") {
+    return (
+      <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" style={{ overscrollBehavior: "contain" }}>
+        <div className="absolute inset-0 backdrop-blur-md" style={{ background: "rgba(10,14,23,0.7)" }} />
+        <div
+          className="relative w-full max-w-sm overflow-hidden shadow-2xl flex flex-col items-center justify-center gap-5 py-14 px-8"
+          style={{ background: "rgba(17,24,39,0.9)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "20px", backdropFilter: "blur(24px)" }}
+        >
+          <div className="h-0.5 w-full absolute top-0 left-0" style={{ background: `linear-gradient(90deg, ${acc.text}, #F5C842)` }} />
+          <div
+            className="w-16 h-16 flex items-center justify-center"
+            style={{ background: acc.bg, border: `1px solid ${acc.border}`, borderRadius: "16px", boxShadow: `0 0 24px ${acc.glow}` }}
+          >
+            <Loader2 size={28} style={{ color: acc.text }} className="animate-spin" />
+          </div>
+          <div className="text-center">
+            <p className="font-semibold text-base mb-1" style={{ color: "#f0f4f8" }}>Verifying Payment…</p>
+            <p className="text-xs" style={{ color: "#64748b" }}>Confirming with Flutterwave and unlocking your prediction</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -305,31 +433,29 @@ function NigeriaPaymentModal({
       onClick={onClose}
       style={{ overscrollBehavior: "contain" }}
     >
-      <div className="absolute inset-0 backdrop-blur-md" style={{ background: "rgba(10,14,23,0.7)" }} />
+      <div className="absolute inset-0 backdrop-blur-md" style={{ background: "rgba(10,10,10,0.75)" }} />
       <div
         className="relative w-full max-w-sm overflow-hidden shadow-2xl"
-        style={{ background: "rgba(17,24,39,0.92)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "20px", backdropFilter: "blur(24px)" }}
+        style={{ background: "rgba(18,16,8,0.95)", border: "1px solid rgba(212,160,23,0.12)", borderRadius: "20px", backdropFilter: "blur(24px)" }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Accent strip */}
         <div className="h-0.5 w-full" style={{ background: `linear-gradient(90deg, ${acc.text}, #F5C842)` }} />
 
         {/* Header */}
-        <div className="px-6 pt-5 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+        <div className="px-6 pt-5 pb-4" style={{ borderBottom: "1px solid rgba(212,160,23,0.08)" }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div
                 className="w-8 h-8 flex items-center justify-center text-base"
                 style={{ background: acc.bg, border: `1px solid ${acc.border}`, borderRadius: "10px" }}
-              >
-                🏦
-              </div>
+              >🇳🇬</div>
               <div>
-                <h2 className="font-semibold text-sm" style={{ color: "#f0f4f8", fontFamily: "'Space Grotesk', sans-serif" }}>Bank Transfer Details</h2>
-                <p className="text-xs" style={{ color: "#64748b" }}>Nigeria — OPay Transfer</p>
+                <h2 className="font-semibold text-sm" style={{ color: "#f0f4f8", fontFamily: "'Space Grotesk', sans-serif" }}>Nigeria Payment</h2>
+                <p className="text-xs" style={{ color: "#555555" }}>Powered by Flutterwave · NGN</p>
               </div>
             </div>
-            <button onClick={onClose} style={{ color: "#64748b" }}><X size={18} /></button>
+            <button onClick={onClose} style={{ color: "#555555" }}><X size={18} /></button>
           </div>
         </div>
 
@@ -346,85 +472,45 @@ function NigeriaPaymentModal({
           <span className="text-3xl">🇳🇬</span>
         </div>
 
-        {/* Bank details */}
-        <div className="px-6 mt-4 space-y-2.5">
-          <div
-            className="flex items-center justify-between px-4 py-3"
-            style={{ background: "rgba(17,24,39,0.6)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "12px" }}
-          >
-            <span className="text-xs" style={{ color: "#64748b" }}>Bank</span>
-            <span className="text-sm font-semibold" style={{ color: "#f0f4f8" }}>OPAY / PAYCOM</span>
+        {/* Payment form */}
+        <div className="px-6 mt-5 space-y-3 pb-6">
+          <div>
+            <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8", fontFamily: "'Space Grotesk', sans-serif", letterSpacing: "0.04em", textTransform: "uppercase", fontSize: "0.6rem" }}>Your email address</label>
+            <input
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              autoFocus
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handlePay()}
+              className="input-field"
+              disabled={step === "paying"}
+            />
           </div>
-          <div
-            className="flex items-center justify-between px-4 py-3"
-            style={{ background: "rgba(17,24,39,0.6)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "12px" }}
-          >
-            <span className="text-xs" style={{ color: "#64748b" }}>Account Name</span>
-            <span className="text-sm font-semibold text-right" style={{ color: "#f0f4f8", maxWidth: "60%" }}>Agbalalah Oyakemeagbeigha</span>
-          </div>
-          <div
-            className="flex items-center justify-between px-4 py-3"
-            style={{ background: "rgba(17,24,39,0.6)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "12px" }}
-          >
-            <span className="text-xs" style={{ color: "#64748b" }}>Account Number</span>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold tracking-wider" style={{ color: "#f0f4f8", fontFamily: "monospace" }}>6118783926</span>
-              <button
-                onClick={copyAccount}
-                className="flex items-center gap-1 text-xs px-2.5 py-1 font-medium transition-all"
-                style={{
-                  background: copied ? "rgba(212,160,23,0.1)" : acc.bg,
-                  color: copied ? "#D4A017" : acc.text,
-                  border: `1px solid ${copied ? "rgba(212,160,23,0.25)" : acc.border}`,
-                  borderRadius: "8px",
-                }}
-              >
-                {copied ? <><Check size={10} />Copied!</> : <><Copy size={10} />Copy</>}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Info note */}
-        <div
-          className="mx-6 mt-4 px-4 py-3 flex gap-2.5"
-          style={{ background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.15)", borderRadius: "12px" }}
-        >
-          <span className="text-base flex-shrink-0">ℹ️</span>
-          <p className="text-xs leading-relaxed" style={{ color: "#94a3b8" }}>
-            After payment, send proof of transfer to our Telegram support for instant activation.
-          </p>
-        </div>
-
-        {/* Actions */}
-        <div className="px-6 py-5 space-y-2.5">
-          <a
-            href="https://t.me/sure_strike_admin"
-            target="_blank"
-            rel="noopener noreferrer"
+          {error && <p className="text-red-400 text-xs leading-relaxed">{error}</p>}
+          <button
+            onClick={handlePay}
+            disabled={step === "paying"}
             className="w-full flex items-center justify-center gap-2 font-bold text-sm py-3.5 transition-all duration-300 active:scale-[0.97]"
             style={{
-              background: "linear-gradient(135deg, #D4A017, #A07810)",
+              background: step === "paying" ? "rgba(212,160,23,0.3)" : `linear-gradient(135deg, ${acc.text}, #A07810)`,
               color: "#0a0a0a",
-              boxShadow: "0 0 20px rgba(212,160,23,0.3), 0 4px 16px rgba(212,160,23,0.2)",
+              boxShadow: step === "paying" ? "none" : `0 0 20px ${acc.glow}, 0 4px 16px ${acc.glow}`,
               borderRadius: "12px",
               fontFamily: "'Space Grotesk', sans-serif",
               letterSpacing: "0.04em",
               textTransform: "uppercase",
               fontSize: "0.8rem",
-              display: "flex",
+              border: `1px solid ${step === "paying" ? "transparent" : acc.border}`,
             }}
           >
-            <ExternalLink size={15} />
-            Contact Support on Telegram
-          </a>
-          <button
-            onClick={onClose}
-            className="w-full py-3 text-sm font-medium transition-all"
-            style={{ background: "rgba(17,24,39,0.6)", color: "#94a3b8", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.05)" }}
-          >
-            Close
+            {step === "paying"
+              ? (<><Loader2 size={16} className="animate-spin" />Opening Flutterwave…</>)
+              : (<><Lock size={15} />Pay ₦{ngn.toLocaleString()} — Unlock</>)}
           </button>
+          <p className="text-center text-[11px]" style={{ color: "#334155" }}>
+            One-time payment · Powered by Flutterwave · Secure checkout
+          </p>
         </div>
       </div>
     </div>
@@ -1041,6 +1127,7 @@ export default function PredictionCard({ prediction, animationDelay = 0 }: Props
   const handleSuccess = (data: UnlockedData) => {
     setUnlocked(data);
     setGhanaModalOpen(false);
+    setNigeriaModalOpen(false);
   };
 
   if (unlocked) {
@@ -1081,10 +1168,11 @@ export default function PredictionCard({ prediction, animationDelay = 0 }: Props
         />
       )}
 
-      {/* Step 2b — Nigeria: Bank transfer details */}
+      {/* Step 2b — Nigeria: Flutterwave */}
       {nigeriaModalOpen && (
         <NigeriaPaymentModal
           prediction={prediction}
+          onSuccess={handleSuccess}
           onClose={() => setNigeriaModalOpen(false)}
         />
       )}
