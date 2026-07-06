@@ -375,10 +375,10 @@ function NigeriaPaymentModal({
           description: `Unlock: ${prediction.match}`,
           logo: "https://surestriketips.vercel.app/logo.png",
         },
-        callback: async (response: { status: string; tx_ref: string; transaction_id: string | number }) => {
-          if (response.status === "successful") {
+        callback: async (response: { status: string; tx_ref: string; transaction_id: string | number; amount?: number; currency?: string }) => {
+          if (response.status === "successful" || response.status === "completed") {
             try {
-              await flwVerifyPayment(reference, prediction._id, email, response.transaction_id);
+              await flwVerifyPayment(reference, prediction._id, email, response.transaction_id, response.amount, response.currency);
               await finalizeUnlock(reference);
             } catch (err: unknown) {
               const msg =

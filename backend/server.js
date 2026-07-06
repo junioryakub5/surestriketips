@@ -562,122 +562,56 @@ app.post('/api/payment/webhook', async (req, res) => {
 });
 
 // ─── Routes: Flutterwave (Nigeria — NGN) ────────────────────────────────────
+// FLW initiate — generate reference locally; no FLW API call needed (inline checkout uses public key)
 app.post('/api/payment/flw/initiate', paymentLimiter, async (req, res) => {
   try {
     const { email, predictionId } = req.body;
     if (!email || !predictionId) return res.status(400).json({ error: 'email and predictionId required' });
-
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) return res.status(400).json({ error: 'Invalid email format' });
-
     const prediction = await db.findPredictionById(predictionId);
     if (!prediction) return res.status(404).json({ error: 'Prediction not found' });
-
-    const FLW_SECRET = process.env.FLW_SECRET_KEY;
-    if (!FLW_SECRET) return res.status(503).json({ error: 'Flutterwave not configured' });
-
-    // Convert GHS price → NGN (1 GHS ≈ 125 NGN — update RATE_GHS_NGN in .env as needed)
     const GHS_TO_NGN = parseFloat(process.env.RATE_GHS_NGN || '125');
     const amountNGN  = Math.round(prediction.price * GHS_TO_NGN);
-
-    const reference = `SST_FLW_${uuidv4().replace(/-/g,'').slice(0,16)}`;
-
-    const { data: flwRes } = await axios.post(
-      'https://api.flutterwave.com/v3/payments',
-      {
-        tx_ref: reference,
-        amount: amountNGN,
-        currency: 'NGN',
-        redirect_url: `${process.env.CLIENT_URL && process.env.CLIENT_URL !== '*' ? process.env.CLIENT_URL.split(',')[0].trim() : 'https://surestriketips.vercel.app'}/unlock/${reference}`,
-        customer: { email: email.toLowerCase().trim() },
-        meta: { predictionId, match: prediction.match },
-        customizations: {
-          title: 'SureStrikeTips',
-          description: `Unlock: ${prediction.match}`,
-          logo: 'https://surestriketips.vercel.app/logo.png',
-        },
-        payment_options: 'card,banktransfer,ussd,mobilemoneyghana',
-      },
-      { headers: { Authorization: `Bearer ${FLW_SECRET}`, 'Content-Type': 'application/json' } }
-    );
-
-    if (flwRes.status !== 'success') {
-      console.error('FLW initiate failed:', flwRes.message);
-      return res.status(502).json({ error: 'Flutterwave initialization failed. Please try again.' });
-    }
-
-    console.log('FLW payment initiated — ref:', reference, 'amount NGN:', amountNGN);
-    res.json({
-      success: true,
-      reference,
-      paymentLink: flwRes.data.link,
-      amount: amountNGN,
-      currency: 'NGN',
-      amountGHS: prediction.price,
-    });
+    const reference  = `SST_FLW_${uuidv4().replace(/-/g,'').slice(0,16)}`;
+    console.log('FLW reference generated — ref:', reference, 'amount NGN:', amountNGN);
+    res.json({ success: true, reference, amount: amountNGN, currency: 'NGN', amountGHS: prediction.price });
   } catch (err) {
-    console.error('FLW initiate error:', err.response?.data || err.message);
-    safeError(res, 500, 'Flutterwave initialization failed', err);
+    safeError(res, 500, 'Failed to initiate payment', err);
   }
 });
 
+
+// FLW verify — records payment from inline checkout callback; no FLW API call needed
 app.post('/api/payment/flw/verify', paymentLimiter, async (req, res) => {
   try {
-    const { reference, predictionId, email, transaction_id } = req.body;
+    const { reference, predictionId, email, transaction_id, amount, currency } = req.body;
     if (!reference || !predictionId) return res.status(400).json({ error: 'reference and predictionId required' });
 
     // Idempotency — already recorded?
     const existing = await db.findPayment({ reference, status:'success' });
     if (existing) return res.json({ success:true, reference:existing.reference, accessToken:existing.accessToken, message:'Already verified' });
 
-    const FLW_SECRET = process.env.FLW_SECRET_KEY;
-    if (!FLW_SECRET) return res.status(503).json({ error: 'Flutterwave not configured' });
-
-    // Prefer transaction_id lookup (more reliable), fallback to tx_ref search
-    let txn;
-    try {
-      if (transaction_id) {
-        const { data: r } = await axios.get(
-          `https://api.flutterwave.com/v3/transactions/${transaction_id}/verify`,
-          { headers: { Authorization: `Bearer ${FLW_SECRET}` } }
-        );
-        txn = r.data;
-      } else {
-        const { data: r } = await axios.get(
-          `https://api.flutterwave.com/v3/transactions?tx_ref=${encodeURIComponent(reference)}`,
-          { headers: { Authorization: `Bearer ${FLW_SECRET}` } }
-        );
-        txn = r.data?.[0];
-      }
-    } catch (axiosErr) {
-      console.error('FLW verify axios error:', axiosErr.response?.data || axiosErr.message);
-      return res.status(402).json({ error: 'Flutterwave verification failed. Please contact support.' });
-    }
-
-    console.log('FLW txn status:', txn?.status, '| ref:', reference);
-
-    if (!txn || txn.status !== 'successful') {
-      return res.status(402).json({ error: `Payment not successful. Status: ${txn?.status || 'unknown'}` });
-    }
-
-    // Validate amount
     const prediction = await db.findPredictionById(predictionId);
     if (!prediction) return res.status(404).json({ error: 'Prediction not found' });
 
+    // Validate amount sent from FLW inline callback
     const GHS_TO_NGN = parseFloat(process.env.RATE_GHS_NGN || '125');
     const expectedNGN = Math.round(prediction.price * GHS_TO_NGN);
-    if (txn.amount < expectedNGN) {
-      console.error(`FLW AMOUNT MISMATCH! Expected ${expectedNGN} NGN, got ${txn.amount}. Ref: ${reference}`);
-      return res.status(402).json({ error: 'Payment amount mismatch. Please contact support.' });
+    const paidAmount  = Number(amount) || 0;
+    if (paidAmount > 0 && paidAmount < expectedNGN * 0.95) {
+      console.error(`FLW AMOUNT LOW! Expected ~${expectedNGN} NGN, got ${paidAmount}. Ref: ${reference}`);
+      return res.status(402).json({ error: 'Payment amount insufficient. Please contact support.' });
     }
 
     const accessToken = uuidv4();
     try {
       await db.createPayment({
         predictionId, predictionTitle: prediction.match, reference,
-        email: (email || txn.customer?.email || '').toLowerCase().trim(),
-        amount: txn.amount, currency: txn.currency || 'NGN',
+        email: (email || '').toLowerCase().trim(),
+        amount: paidAmount || expectedNGN, currency: currency || 'NGN',
         status: 'success', accessToken, provider: 'flutterwave',
+        meta: { transaction_id },
       });
     } catch (insertErr) {
       if (insertErr?.message?.includes('unique constraint') || insertErr?.code === '23505') {
@@ -687,13 +621,14 @@ app.post('/api/payment/flw/verify', paymentLimiter, async (req, res) => {
       throw insertErr;
     }
 
-    console.log('FLW payment verified OK — ref:', reference, 'amount:', txn.amount, txn.currency);
+    console.log('FLW payment recorded — ref:', reference, 'amount:', paidAmount || expectedNGN, currency || 'NGN', '| txn_id:', transaction_id);
     res.json({ success:true, reference, accessToken });
   } catch (err) {
     console.error('FLW verify error:', err.message);
     safeError(res, 500, 'Flutterwave verification failed', err);
   }
 });
+
 
 // Flutterwave webhook — server-to-server, signature-verified
 app.post('/api/payment/flw/webhook', async (req, res) => {

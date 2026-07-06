@@ -77,9 +77,11 @@ export async function flwVerifyPayment(
   reference: string,
   predictionId: string,
   email: string,
-  transaction_id?: string | number
+  transaction_id?: string | number,
+  amount?: number,
+  currency?: string,
 ): Promise<{ reference: string; accessToken: string }> {
-  const res = await api.post("/payment/flw/verify", { reference, predictionId, email, transaction_id });
+  const res = await api.post("/payment/flw/verify", { reference, predictionId, email, transaction_id, amount, currency });
   return res.data;
 }
 
