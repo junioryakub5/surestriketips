@@ -282,7 +282,7 @@ const db = {
         supabase.from('predictions').select('*',{count:'exact',head:true}).eq('status','completed'),
         supabase.from('payments').select('*',{count:'exact',head:true}).eq('status','success'),
         // Fetch amount + currency + provider for revenue breakdown
-        supabase.from('payments').select('amount,currency,provider').eq('status','success').limit(100000),
+        supabase.from('payments').select('*').eq('status','success').limit(100000),
         supabase.from('payments').select('*').eq('status','success')
           .order('created_at',{ascending:false}).limit(20),
       ]);
