@@ -138,7 +138,11 @@ function OverviewSection({ token }: { token: string }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    adminGetStats(token).then(setStats).catch(console.error).finally(() => setLoading(false));
+    adminGetStats(token)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .then(data => setStats(data as any))
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, [token]);
 
   if (loading) return <div className="flex items-center justify-center py-24"><Loader2 size={28} className="animate-spin" style={{ color: "#c9a84c" }} /></div>;

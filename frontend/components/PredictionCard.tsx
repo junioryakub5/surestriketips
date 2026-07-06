@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import React from "react";
 import {
   Calendar, Lock, X, Loader2, Shield, Zap,
-  CheckCircle, Trophy, RefreshCcw, Mail,
+  CheckCircle, Copy, Check, Trophy, RefreshCcw, Mail,
 } from "lucide-react";
 import { Prediction } from "@/lib/types";
 import { initiatePayment, verifyPayment, getUnlockedPrediction, restoreAccess, flwInitiatePayment, flwVerifyPayment } from "@/lib/api";
