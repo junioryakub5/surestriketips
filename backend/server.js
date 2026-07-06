@@ -241,14 +241,24 @@ const db = {
   },
   async createPayment(data) {
     if (supabase) {
-      const { data: d, error } = await supabase.from('payments').insert({
+      const payload = {
         prediction_id:data.predictionId, prediction_title:data.predictionTitle,
         reference:data.reference, email:data.email.toLowerCase().trim(),
         amount:data.amount, currency:data.currency||'GHS',
         status:data.status, access_token:data.accessToken||uuidv4(),
         provider:data.provider||'paystack',
-      }).select().single();
-      if (error) throw error;
+      };
+      const { data: d, error } = await supabase.from('payments').insert(payload).select().single();
+      if (error) {
+        // Fallback: if provider column doesn't exist yet, retry without it
+        if (error.message?.includes('provider') || error.code === 'PGRST204' || error.code === '42703') {
+          const { provider: _p, ...payloadNoProvider } = payload;
+          const { data: d2, error: err2 } = await supabase.from('payments').insert(payloadNoProvider).select().single();
+          if (err2) throw err2;
+          return toMoney(d2);
+        }
+        throw error;
+      }
       return toMoney(d);
     }
     const p = { _id:uuidv4(), ...data, createdAt:new Date().toISOString() };
