@@ -141,6 +141,20 @@ export async function adminGetStats(token: string): Promise<{
   totalRevenue: number;
   totalSales: number;
   recentActivity: RecentActivity[];
+  ghanaRevenue: number;
+  nigeriaRevenue: number;
+  ghanaSales: number;
+  nigeriaSales: number;
+  todayRevenue?: number;
+  todayGhanaRevenue?: number;
+  todayNigeriaRevenue?: number;
+  todaySales?: number;
+  weekRevenue?: number;
+  weekSales?: number;
+  monthRevenue?: number;
+  monthSales?: number;
+  totalWins?: number;
+  totalLosses?: number;
 }> {
   const res = await api.get("/admin/stats", { headers: adminHeaders(token) });
   return res.data.data;

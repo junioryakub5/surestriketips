@@ -134,6 +134,9 @@ function OverviewSection({ token }: { token: string }) {
     totalSlips: number; activeSlips: number; completedSlips: number;
     totalRevenue: number; totalSales: number; recentActivity: RecentActivity[];
     ghanaRevenue: number; nigeriaRevenue: number; ghanaSales: number; nigeriaSales: number;
+    todayRevenue?: number; todayGhanaRevenue?: number; todayNigeriaRevenue?: number; todaySales?: number;
+    weekRevenue?: number; weekSales?: number; monthRevenue?: number; monthSales?: number;
+    totalWins?: number; totalLosses?: number;
   } | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -148,86 +151,307 @@ function OverviewSection({ token }: { token: string }) {
   if (loading) return <div className="flex items-center justify-center py-24"><Loader2 size={28} className="animate-spin" style={{ color: "#c9a84c" }} /></div>;
   if (!stats) return <div className="py-24 text-center" style={{ color: "#78716c" }}>Failed to load stats.</div>;
 
-  const statCards = [
-    { label: "Total Slips", value: stats.totalSlips, icon: FileText, color: "#c9a84c" },
-    { label: "Active Slips", value: stats.activeSlips, icon: Activity, color: "#22c55e" },
-    { label: "Total Revenue", value: `GHS ${stats.ghanaRevenue.toFixed(2)}`, icon: DollarSign, color: "#22c55e" },
-    { label: "Total Sales", value: stats.totalSales, icon: TrendingUp, color: "#c9a84c" },
-  ];
+  const totalWins   = stats.totalWins   ?? 0;
+  const totalLosses = stats.totalLosses ?? 0;
+  const winTotal    = totalWins + totalLosses;
+  const winPct      = winTotal > 0 ? Math.round((totalWins / winTotal) * 100) : 0;
+
+  const todayRevenue        = stats.todayRevenue        ?? 0;
+  const todayGhanaRevenue   = stats.todayGhanaRevenue   ?? 0;
+  const todayNigeriaRevenue = stats.todayNigeriaRevenue ?? 0;
+  const todaySales          = stats.todaySales          ?? 0;
+  const weekRevenue         = stats.weekRevenue         ?? 0;
+  const weekSales           = stats.weekSales           ?? 0;
+  const monthRevenue        = stats.monthRevenue        ?? 0;
+  const monthSales          = stats.monthSales          ?? 0;
+
+  const fmtTime = (iso: string) => {
+    const d = new Date(iso);
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) +
+      " · " + d.toLocaleDateString([], { month: "short", day: "numeric" });
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-        {statCards.map(s => (
-          <div key={s.label} className="admin-card p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs" style={{ color: "#78716c" }}>{s.label}</span>
-              <s.icon size={18} style={{ color: s.color }} />
+    <div className="space-y-4">
+
+      {/* ── Row 1: Today Income (hero) + Week + Month ── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+        {/* Today Income — HERO */}
+        <div
+          className="md:col-span-1 rounded-2xl p-5 relative overflow-hidden"
+          style={{
+            background: "linear-gradient(135deg, rgba(201,168,76,0.16) 0%, rgba(201,168,76,0.07) 100%)",
+            border: "1px solid rgba(201,168,76,0.3)",
+            boxShadow: "0 0 40px rgba(201,168,76,0.07)",
+          }}
+        >
+          <div style={{
+            position: "absolute", top: "-30%", right: "-20%",
+            width: "180px", height: "180px", borderRadius: "50%",
+            background: "radial-gradient(circle, rgba(201,168,76,0.2), transparent 70%)",
+            pointerEvents: "none",
+          }} />
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-4">
+              <div style={{
+                width: 32, height: 32, borderRadius: 10,
+                background: "rgba(201,168,76,0.15)", border: "1px solid rgba(201,168,76,0.35)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <DollarSign size={16} style={{ color: "#c9a84c" }} />
+              </div>
+              <p style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(201,168,76,0.8)" }}>Income Today</p>
             </div>
-            <div style={{ color: "#faf5ef" }} className="text-2xl font-bold font-display">{s.value}</div>
+            <div style={{ fontWeight: 900, fontSize: "2rem", color: "#c9a84c", lineHeight: 1, marginBottom: 6 }}>
+              GHS {todayRevenue.toFixed(2)}
+            </div>
+            <p style={{ fontSize: "0.72rem", color: "#78716c", marginBottom: 14 }}>
+              {todaySales} sale{todaySales !== 1 ? "s" : ""} today
+            </p>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span style={{ fontSize: "0.7rem", color: "#78716c" }}>🇬🇭 Ghana (Paystack)</span>
+                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#22c55e" }}>GHS {todayGhanaRevenue.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span style={{ fontSize: "0.7rem", color: "#78716c" }}>🇳🇬 Nigeria (Flutterwave)</span>
+                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#c9a84c" }}>₦{todayNigeriaRevenue.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* This Week */}
+        <div className="rounded-2xl p-5" style={{ background: "rgba(28,25,23,0.9)", border: "1px solid rgba(201,168,76,0.12)", backdropFilter: "blur(10px)" }}>
+          <div className="flex items-center gap-2 mb-4">
+            <div style={{ width: 32, height: 32, borderRadius: 10, background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <TrendingUp size={16} style={{ color: "#c9a84c" }} />
+            </div>
+            <p style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(201,168,76,0.7)" }}>This Week</p>
+          </div>
+          <div style={{ fontWeight: 800, fontSize: "1.7rem", color: "#d4a844", lineHeight: 1, marginBottom: 6 }}>
+            GHS {weekRevenue.toFixed(2)}
+          </div>
+          <p style={{ fontSize: "0.72rem", color: "#78716c" }}>{weekSales} sales · last 7 days</p>
+          <div style={{ marginTop: 16, height: 3, borderRadius: 4, background: "rgba(201,168,76,0.1)" }}>
+            <div style={{
+              height: "100%", borderRadius: 4,
+              background: "linear-gradient(90deg, #c9a84c, #d4a844)",
+              width: stats.totalRevenue > 0 ? `${Math.min(100, (weekRevenue / stats.totalRevenue) * 100)}%` : "0%",
+              transition: "width 0.6s ease",
+            }} />
+          </div>
+          <p style={{ fontSize: "0.65rem", color: "#57534e", marginTop: 4 }}>
+            {stats.totalRevenue > 0 ? Math.round((weekRevenue / stats.totalRevenue) * 100) : 0}% of all-time
+          </p>
+        </div>
+
+        {/* This Month */}
+        <div className="rounded-2xl p-5" style={{ background: "rgba(28,25,23,0.9)", border: "1px solid rgba(201,168,76,0.12)", backdropFilter: "blur(10px)" }}>
+          <div className="flex items-center gap-2 mb-4">
+            <div style={{ width: 32, height: 32, borderRadius: 10, background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <BarChart2 size={16} style={{ color: "#c9a84c" }} />
+            </div>
+            <p style={{ fontSize: "0.62rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(201,168,76,0.7)" }}>This Month</p>
+          </div>
+          <div style={{ fontWeight: 800, fontSize: "1.7rem", color: "#d4a844", lineHeight: 1, marginBottom: 6 }}>
+            GHS {monthRevenue.toFixed(2)}
+          </div>
+          <p style={{ fontSize: "0.72rem", color: "#78716c" }}>{monthSales} sales · current month</p>
+          <div style={{ marginTop: 16, height: 3, borderRadius: 4, background: "rgba(201,168,76,0.1)" }}>
+            <div style={{
+              height: "100%", borderRadius: 4,
+              background: "linear-gradient(90deg, #c9a84c, #d4a844)",
+              width: stats.totalRevenue > 0 ? `${Math.min(100, (monthRevenue / stats.totalRevenue) * 100)}%` : "0%",
+              transition: "width 0.6s ease",
+            }} />
+          </div>
+          <p style={{ fontSize: "0.65rem", color: "#57534e", marginTop: 4 }}>
+            {stats.totalRevenue > 0 ? Math.round((monthRevenue / stats.totalRevenue) * 100) : 0}% of all-time
+          </p>
+        </div>
+      </div>
+
+      {/* ── Row 2: Stat chips ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          {
+            label: "Total Revenue", value: `GHS ${(stats.ghanaRevenue ?? 0).toFixed(2)}`,
+            sub: `${stats.totalSales} total sales`, color: "#22c55e",
+            bg: "rgba(34,197,94,0.08)", border: "rgba(34,197,94,0.2)", Icon: DollarSign,
+          },
+          {
+            label: "Total Predictions", value: stats.totalSlips,
+            sub: `${stats.activeSlips} active · ${stats.completedSlips} done`, color: "#c9a84c",
+            bg: "rgba(201,168,76,0.08)", border: "rgba(201,168,76,0.2)", Icon: FileText,
+          },
+          {
+            label: "Win Rate", value: `${winPct}%`,
+            sub: `${totalWins}W · ${totalLosses}L · ${winTotal} total`,
+            color: winPct >= 50 ? "#22c55e" : "#ef4444",
+            bg: winPct >= 50 ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.06)",
+            border: winPct >= 50 ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.18)", Icon: TrendingUp,
+          },
+          {
+            label: "Active Slips", value: stats.activeSlips,
+            sub: `${stats.completedSlips} completed`, color: "#c9a84c",
+            bg: "rgba(201,168,76,0.08)", border: "rgba(201,168,76,0.2)", Icon: Activity,
+          },
+        ].map((s) => (
+          <div
+            key={s.label}
+            style={{
+              background: "rgba(28,25,23,0.9)", border: `1px solid ${s.border}`,
+              borderRadius: 16, padding: "1rem 1.25rem",
+              backdropFilter: "blur(10px)", transition: "transform 0.2s, box-shadow 0.2s",
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)";
+              (e.currentTarget as HTMLElement).style.boxShadow = `0 8px 28px ${s.bg}`;
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
+              (e.currentTarget as HTMLElement).style.boxShadow = "none";
+            }}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div style={{ width: 34, height: 34, borderRadius: 10, background: s.bg, border: `1px solid ${s.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <s.Icon size={16} style={{ color: s.color }} />
+              </div>
+            </div>
+            <div style={{ fontWeight: 800, fontSize: "1.45rem", color: s.color, lineHeight: 1, marginBottom: 4 }}>{s.value}</div>
+            <div style={{ fontSize: "0.68rem", color: "#78716c", fontWeight: 600, letterSpacing: "0.02em" }}>{s.label}</div>
+            <div style={{ fontSize: "0.62rem", color: "#44403c", marginTop: 2 }}>{s.sub}</div>
           </div>
         ))}
       </div>
 
-      {/* Ghana vs Nigeria revenue breakdown */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Ghana — Paystack */}
-        <div className="admin-card p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">🇬🇭</span>
-              <h3 style={{ color: "#faf5ef" }} className="font-semibold text-sm">Ghana Payments</h3>
-              <span className="text-[9px] font-bold px-2 py-0.5 uppercase tracking-wider" style={{ background: "rgba(34,197,94,0.08)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.2)", borderRadius: "6px" }}>Paystack</span>
+      {/* ── Row 3: Win/Loss + Ghana + Nigeria ── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+        {/* Win / Loss Record */}
+        <div style={{ background: "rgba(28,25,23,0.9)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: "1.25rem", backdropFilter: "blur(10px)" }}>
+          <div className="flex items-center gap-2 mb-4">
+            <div style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <CheckCircle size={14} style={{ color: "#22c55e" }} />
+            </div>
+            <p style={{ fontSize: "0.75rem", fontWeight: 700, color: "#a8a29e" }}>Win / Loss Record</p>
+          </div>
+          <div style={{ height: 8, borderRadius: 8, background: "rgba(239,68,68,0.18)", overflow: "hidden", marginBottom: 10 }}>
+            <div style={{ height: "100%", borderRadius: 8, background: "linear-gradient(90deg, #22c55e, #16a34a)", width: `${winPct}%`, transition: "width 0.8s ease" }} />
+          </div>
+          <div className="flex justify-between">
+            <div className="text-center">
+              <div style={{ fontWeight: 800, fontSize: "1.4rem", color: "#22c55e" }}>{totalWins}</div>
+              <div style={{ fontSize: "0.62rem", color: "#57534e", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}>Wins</div>
+            </div>
+            <div className="text-center">
+              <div style={{ fontWeight: 800, fontSize: "1.4rem", color: winPct >= 50 ? "#22c55e" : "#c9a84c" }}>{winPct}%</div>
+              <div style={{ fontSize: "0.62rem", color: "#57534e", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}>Rate</div>
+            </div>
+            <div className="text-center">
+              <div style={{ fontWeight: 800, fontSize: "1.4rem", color: "#ef4444" }}>{totalLosses}</div>
+              <div style={{ fontSize: "0.62rem", color: "#57534e", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}>Losses</div>
             </div>
           </div>
-          <div className="flex justify-between text-sm mb-2"><span style={{ color: "#78716c" }}>Revenue:</span><span className="font-bold" style={{ color: "#22c55e" }}>GHS {stats.ghanaRevenue.toFixed(2)}</span></div>
-          <div className="flex justify-between text-sm"><span style={{ color: "#78716c" }}>Sales:</span><span className="font-semibold" style={{ color: "#faf5ef" }}>{stats.ghanaSales}</span></div>
         </div>
 
-        {/* Nigeria — Flutterwave */}
-        <div className="admin-card p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">🇳🇬</span>
-              <h3 style={{ color: "#faf5ef" }} className="font-semibold text-sm">Nigeria Payments</h3>
-              <span className="text-[9px] font-bold px-2 py-0.5 uppercase tracking-wider" style={{ background: "rgba(201,168,76,0.08)", color: "#c9a84c", border: "1px solid rgba(201,168,76,0.2)", borderRadius: "6px" }}>Flutterwave</span>
+        {/* Ghana */}
+        <div style={{ background: "rgba(28,25,23,0.9)", border: "1px solid rgba(34,197,94,0.15)", borderRadius: 16, padding: "1.25rem", backdropFilter: "blur(10px)" }}>
+          <div className="flex items-center gap-2 mb-3">
+            <div style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Globe2 size={14} style={{ color: "#22c55e" }} />
+            </div>
+            <h3 style={{ color: "#faf5ef", fontWeight: 700, fontSize: "0.85rem" }}>🇬🇭 Ghana (Paystack)</h3>
+          </div>
+          <div className="space-y-2">
+            <div className="flex justify-between items-baseline">
+              <span style={{ fontSize: "0.68rem", color: "#57534e" }}>All-time</span>
+              <span style={{ fontWeight: 800, color: "#22c55e", fontSize: "1rem" }}>GHS {(stats.ghanaRevenue ?? 0).toFixed(2)}</span>
+            </div>
+            <div style={{ height: "1px", background: "rgba(255,255,255,0.04)" }} />
+            <div className="flex justify-between items-baseline">
+              <span style={{ fontSize: "0.68rem", color: "#57534e" }}>Today</span>
+              <span style={{ fontWeight: 700, color: "#22c55e", fontSize: "0.9rem" }}>GHS {todayGhanaRevenue.toFixed(2)}</span>
+            </div>
+            <div style={{ height: "1px", background: "rgba(255,255,255,0.04)" }} />
+            <div className="flex justify-between">
+              <span style={{ fontSize: "0.68rem", color: "#57534e" }}>Total sales</span>
+              <span style={{ fontWeight: 700, color: "#faf5ef", fontSize: "0.85rem" }}>{stats.ghanaSales}</span>
             </div>
           </div>
-          <div className="flex justify-between text-sm mb-2"><span style={{ color: "#78716c" }}>Revenue:</span><span className="font-bold" style={{ color: "#c9a84c" }}>₦{stats.nigeriaRevenue.toLocaleString()}</span></div>
-          <div className="flex justify-between text-sm"><span style={{ color: "#78716c" }}>Sales:</span><span className="font-semibold" style={{ color: "#faf5ef" }}>{stats.nigeriaSales}</span></div>
+        </div>
+
+        {/* Nigeria */}
+        <div style={{ background: "rgba(28,25,23,0.9)", border: "1px solid rgba(201,168,76,0.15)", borderRadius: 16, padding: "1.25rem", backdropFilter: "blur(10px)" }}>
+          <div className="flex items-center gap-2 mb-3">
+            <div style={{ width: 30, height: 30, borderRadius: 9, background: "rgba(201,168,76,0.1)", border: "1px solid rgba(201,168,76,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Globe2 size={14} style={{ color: "#c9a84c" }} />
+            </div>
+            <h3 style={{ color: "#faf5ef", fontWeight: 700, fontSize: "0.85rem" }}>🇳🇬 Nigeria (Flutterwave)</h3>
+          </div>
+          <div className="space-y-2">
+            <div className="flex justify-between items-baseline">
+              <span style={{ fontSize: "0.68rem", color: "#57534e" }}>All-time</span>
+              <span style={{ fontWeight: 800, color: "#c9a84c", fontSize: "1rem" }}>₦{(stats.nigeriaRevenue ?? 0).toLocaleString()}</span>
+            </div>
+            <div style={{ height: "1px", background: "rgba(255,255,255,0.04)" }} />
+            <div className="flex justify-between items-baseline">
+              <span style={{ fontSize: "0.68rem", color: "#57534e" }}>Today</span>
+              <span style={{ fontWeight: 700, color: "#c9a84c", fontSize: "0.9rem" }}>₦{todayNigeriaRevenue.toLocaleString()}</span>
+            </div>
+            <div style={{ height: "1px", background: "rgba(255,255,255,0.04)" }} />
+            <div className="flex justify-between">
+              <span style={{ fontSize: "0.68rem", color: "#57534e" }}>Total sales</span>
+              <span style={{ fontWeight: 700, color: "#faf5ef", fontSize: "0.85rem" }}>{stats.nigeriaSales}</span>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Slip overview */}
-      <div className="admin-card p-5">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2"><BarChart2 size={16} style={{ color: "#c9a84c" }} /><h3 style={{ color: "#faf5ef" }} className="font-semibold text-sm">Slip Overview</h3></div>
+      {/* ── Recent Payments ── */}
+      <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(28,25,23,0.95)", border: "1px solid rgba(201,168,76,0.08)" }}>
+        <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(201,168,76,0.06)" }}>
+          <h3 className="font-semibold" style={{ color: "#faf5ef" }}>Recent Payments</h3>
+          {stats.recentActivity.length > 0 && (
+            <span style={{ fontSize: "0.65rem", color: "#57534e", fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+              {stats.recentActivity.length} shown
+            </span>
+          )}
         </div>
-        <div className="flex justify-between text-sm mb-2"><span style={{ color: "#78716c" }}>Active:</span><span className="font-bold" style={{ color: "#c9a84c" }}>{stats.activeSlips}</span></div>
-        <div className="flex justify-between text-sm"><span style={{ color: "#78716c" }}>Completed:</span><span className="font-semibold" style={{ color: "#a8a29e" }}>{stats.completedSlips}</span></div>
-      </div>
-
-      {/* Recent activity */}
-      <div className="admin-card overflow-hidden">
-        <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(201,168,76,0.06)" }}><h3 style={{ color: "#faf5ef" }} className="font-semibold text-sm">Recent Activity</h3></div>
         {stats.recentActivity.length === 0 ? (
-          <div className="py-12 text-center text-sm" style={{ color: "#78716c" }}>No payment activity yet.</div>
+          <div className="py-12 text-center text-sm" style={{ color: "#57534e" }}>No payment activity yet.</div>
         ) : (
-          <div className="divide-y" style={{ borderColor: "rgba(201,168,76,0.04)" }}>
-            {stats.recentActivity.map(act => (
-              <div key={act._id} className="flex items-center justify-between px-5 py-3.5 transition-colors hover:bg-white/[0.01]">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: "rgba(201,168,76,0.1)", color: "#c9a84c" }}>{act.email[0].toUpperCase()}</div>
-                  <div>
-                    <p style={{ color: "#a8a29e" }} className="text-sm font-medium">{act.email}</p>
-                    <p className="text-xs" style={{ color: "#57534e" }}>{act.predictionTitle}</p>
+          <div>
+            {stats.recentActivity.map((act) => (
+              <div
+                key={act._id}
+                className="flex items-center justify-between px-5 py-3.5 transition-colors"
+                style={{ borderBottom: "1px solid rgba(201,168,76,0.04)" }}
+                onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(201,168,76,0.02)")}
+                onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                    style={{ background: "rgba(201,168,76,0.1)", color: "#c9a84c", border: "1px solid rgba(201,168,76,0.2)" }}>
+                    {act.email[0].toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate" style={{ color: "#a8a29e", maxWidth: 180 }}>{act.email}</p>
+                    <p className="text-xs truncate" style={{ color: "#57534e", maxWidth: 180 }}>{act.predictionTitle}</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className={`text-sm font-bold ${act.status === "success" ? "text-emerald-400" : "text-red-400"}`}>
-                    {act.provider === "flutterwave" ? "🇳🇬" : "🇬🇭"} {act.currency} {act.amount}
-                  </p>
-                  <p className="text-xs" style={{ color: "#57534e" }}>{act.provider === "flutterwave" ? "Flutterwave" : "Paystack"}</p>
+                <div className="flex items-center gap-3 flex-shrink-0 ml-3">
+                  <span style={{ fontSize: "0.65rem", background: act.provider === "flutterwave" ? "rgba(201,168,76,0.1)" : "rgba(34,197,94,0.1)", color: act.provider === "flutterwave" ? "#c9a84c" : "#22c55e", border: `1px solid ${act.provider === "flutterwave" ? "rgba(201,168,76,0.25)" : "rgba(34,197,94,0.25)"}`, borderRadius: 6, padding: "2px 6px", fontWeight: 700 }}>
+                    {act.provider === "flutterwave" ? "🇳🇬" : "🇬🇭"}
+                  </span>
+                  <div className="text-right">
+                    <p className="text-sm font-bold" style={{ color: act.status === "success" ? "#22c55e" : "#ef4444" }}>
+                      {act.currency} {act.amount}
+                    </p>
+                    <p className="text-xs" style={{ color: "#44403c" }}>{fmtTime(act.createdAt)}</p>
+                  </div>
                 </div>
               </div>
             ))}
@@ -237,6 +461,7 @@ function OverviewSection({ token }: { token: string }) {
     </div>
   );
 }
+
 
 function SlipModal({ editing, initial, onSave, onClose, saving, token }: {
   editing: Prediction | null; initial: typeof EMPTY_FORM; onSave: (data: typeof EMPTY_FORM) => void; onClose: () => void; saving: boolean; token: string;
