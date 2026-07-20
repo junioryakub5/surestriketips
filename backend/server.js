@@ -220,11 +220,25 @@ const db = {
   },
   async allPredictions() {
     if (supabase) {
-      const { data, error } = await supabase.from('predictions').select('*').order('created_at', { ascending: false });
+      const [{ data, error }, { data: paymentCounts }] = await Promise.all([
+        supabase.from('predictions').select('*').order('created_at', { ascending: false }),
+        supabase.from('payments').select('prediction_id').eq('status', 'success'),
+      ]);
       if (error) throw error;
-      return data.map(toP);
+      // Build a map of predictionId -> count
+      const countMap = {};
+      (paymentCounts || []).forEach(p => {
+        if (p.prediction_id) countMap[p.prediction_id] = (countMap[p.prediction_id] || 0) + 1;
+      });
+      return data.map(r => ({ ...toP(r), purchaseCount: countMap[r.id] || 0 }));
     }
-    return [...memPredictions].sort((a,b) => new Date(b.createdAt)-new Date(a.createdAt));
+    const countMap = {};
+    memPayments.filter(p => p.status === 'success').forEach(p => {
+      if (p.predictionId) countMap[p.predictionId] = (countMap[p.predictionId] || 0) + 1;
+    });
+    return [...memPredictions]
+      .sort((a,b) => new Date(b.createdAt)-new Date(a.createdAt))
+      .map(p => ({ ...p, purchaseCount: countMap[p._id] || 0 }));
   },
   async findPayment(query) {
     if (supabase) {

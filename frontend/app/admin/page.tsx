@@ -640,7 +640,7 @@ function ManageSlipsSection({ token }: { token: string }) {
                       <td className="px-5 py-4"><OddsBadge cat={slip.oddsCategory} /></td>
                       <td className="px-5 py-4 text-sm" style={{ color: "#a8a29e" }}>GHS {slip.price}</td>
                       <td className="px-5 py-4"><StatusBadge status={slip.status} /></td>
-                      <td className="px-5 py-4 text-sm" style={{ color: "#78716c" }}>0</td>
+                      <td className="px-5 py-4 text-sm" style={{ color: "#78716c" }}>{slip.purchaseCount ?? 0}</td>
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-1">
                           <button onClick={() => { setEditing(slip); setShowModal(true); }} className="p-1.5 transition-colors" style={{ color: "#78716c" }}><Pencil size={15} /></button>

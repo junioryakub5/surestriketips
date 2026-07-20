@@ -20,6 +20,7 @@ export interface Prediction {
   result: "win" | "loss" | null;
   createdAt: string;
   updatedAt?: string;
+  purchaseCount?: number;           // number of successful payments for this slip
 }
 
 export interface Payment {
