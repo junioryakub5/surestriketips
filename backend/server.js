@@ -13,8 +13,10 @@ const app  = express();
 const PORT = process.env.PORT || 5003;
 const IS_PROD = process.env.NODE_ENV === 'production';
 
-// Trust reverse proxy (nginx/Cloudflare) — required for rate limiting & real IPs
-app.set('trust proxy', 1);
+// Trust two proxy hops (Vercel edge → Nginx → Express) so rate-limit can
+// identify the real user IP from X-Forwarded-For instead of bucketing
+// everyone under Vercel's shared server IPs.
+app.set('trust proxy', 2);
 
 // ─── Security: Helmet headers ─────────────────────────────────────────────────
 app.use(helmet({
@@ -58,10 +60,16 @@ const paymentLimiter = rateLimit({
 // General API: generous
 const generalLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 60,
+  max: 1000,
   message: { error: 'Rate limit exceeded. Please slow down.' },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // Never rate-limit public read endpoints — these are the main page data
+    const p = req.path;
+    return p === '/predictions' || p.startsWith('/predictions/') ||
+           p === '/access' || p.startsWith('/access/');
+  },
 });
 
 app.use('/api/', generalLimiter);
