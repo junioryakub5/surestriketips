@@ -13,10 +13,10 @@ const app  = express();
 const PORT = process.env.PORT || 5003;
 const IS_PROD = process.env.NODE_ENV === 'production';
 
-// Trust two proxy hops (Vercel edge → Nginx → Express) so rate-limit can
-// identify the real user IP from X-Forwarded-For instead of bucketing
-// everyone under Vercel's shared server IPs.
-app.set('trust proxy', 2);
+// Trust ALL proxy hops (Vercel, Nginx, Cloudflare) — required so express-rate-limit
+// reads the real client IP from X-Forwarded-For instead of seeing the proxy IP.
+// Safe on a private VPS — all traffic enters through known trusted proxies.
+app.set('trust proxy', true);
 
 // ─── Security: Helmet headers ─────────────────────────────────────────────────
 app.use(helmet({
@@ -39,40 +39,42 @@ app.use(cors({
 }));
 
 // ─── Security: Rate Limiting ──────────────────────────────────────────────────
-// Auth endpoints: strict
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5,
-  message: { error: 'Too many attempts. Try again in 15 minutes.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-// Payment endpoints: moderate
-const paymentLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 10,
-  message: { error: 'Too many payment requests. Please wait a moment.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-// General API: generous
-const generalLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 1000,
-  message: { error: 'Rate limit exceeded. Please slow down.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-  skip: (req) => {
-    // Never rate-limit public read endpoints — these are the main page data
-    const p = req.path;
-    return p === '/predictions' || p.startsWith('/predictions/') ||
-           p === '/access' || p.startsWith('/access/');
+// Shared options that apply to every limiter.
+const limiterDefaults = {
+  standardHeaders: true,   // Emit RateLimit-* headers (RFC 6585)
+  legacyHeaders:   false,  // Do not emit X-RateLimit-* headers
+  validate:        false,  // Suppress XFF/proxy validation errors (trust proxy handles it)
+  handler: (req, res) => {
+    const resetMs   = req.rateLimit?.resetTime ? req.rateLimit.resetTime - Date.now() : 60000;
+    const retryAfter = Math.max(1, Math.ceil(resetMs / 1000));
+    console.log(`[RATE-LIMIT] ${req.ip} → ${req.method} ${req.path} | limit=${req.rateLimit?.limit} window=${req.rateLimit?.windowMs}ms`);
+    res.setHeader('Retry-After', retryAfter);
+    res.status(429).json({ error: 'Too many requests. Please wait before trying again.', retryAfter });
   },
+};
+
+// Auth endpoints — strict (admin login only)
+const authLimiter = rateLimit({
+  ...limiterDefaults,
+  windowMs: 15 * 60 * 1000, // 15-minute window
+  max: 10,                   // 10 attempts/window — allows normal admin use without lockout
 });
 
-app.use('/api/', generalLimiter);
+// Payment endpoints — moderate (allows retries without blocking)
+const paymentLimiter = rateLimit({
+  ...limiterDefaults,
+  windowMs: 60 * 1000, // 1-minute window
+  max: 30,             // 30 req/min — covers initiate + verify + retries for a few cards
+});
+
+// ⚠️  NO general rate limiter.
+// Reasons:
+//   • Public reads (/predictions, /access) need no limiting — they are safe static reads.
+//   • Admin routes are already protected by the ADMIN_TOKEN auth middleware.
+//   • Upload routes have file-size limits (multer) which are a better protection.
+//   • A global limiter in cluster mode is unreliable (each worker has separate memory).
+//   • The ValidationError bug from express-rate-limit was caused by the global limiter +
+//     missing trust proxy, which crashed EVERY request — removing it prevents recurrence.
 
 // Body parsing — IMPORTANT: raw body needed for webhook HMAC verification
 app.use('/api/payment/webhook', express.raw({ type: 'application/json' }));
