@@ -854,7 +854,7 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
   const goTo = (id: Section) => { setSection(id); setDrawerOpen(false); };
 
   const sidebarContent = (
-    <>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <div className="px-5 py-5 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(201,168,76,0.06)" }}>
         <div>
           <div className="font-display font-bold text-base" style={{ color: "#faf5ef", letterSpacing: "-0.01em" }}>Sure<span style={{ color: "#c9a84c" }}>Strike</span>Tips</div>
@@ -862,7 +862,7 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
         </div>
         <button className="md:hidden p-1.5" style={{ color: "#78716c" }} onClick={() => setDrawerOpen(false)}><X size={20} /></button>
       </div>
-      <nav className="flex-1 py-4 space-y-0.5 px-2">
+      <nav style={{ flex: 1, padding: "1rem 0.5rem 0.5rem", display: "flex", flexDirection: "column", gap: "2px" }}>
         {navItems.map(item => (
           <button key={item.id} onClick={() => goTo(item.id)} className="w-full flex items-center gap-3 px-4 py-3 text-xs font-semibold transition-all duration-150"
             style={section === item.id ? { background: "rgba(201,168,76,0.06)", color: "#c9a84c", border: "1px solid rgba(201,168,76,0.1)", borderRadius: "6px", fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "0.06em", textTransform: "uppercase" as const } : { color: "#78716c", border: "1px solid transparent", borderRadius: "6px", fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "0.06em", textTransform: "uppercase" as const }}>
@@ -870,11 +870,11 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
           </button>
         ))}
       </nav>
-      <div className="px-2 py-4 space-y-1" style={{ borderTop: "1px solid rgba(201,168,76,0.06)" }}>
-        <button onClick={() => { setDrawerOpen(false); setShowReset(true); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-semibold transition-all" style={{ color: "#ef4444", border: "1px solid rgba(239,68,68,0.18)", borderRadius: "6px", fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "0.06em", textTransform: "uppercase", background: "rgba(239,68,68,0.04)" }}><Trash2 size={17} />Clear Data</button>
+      <div style={{ borderTop: "1px solid rgba(201,168,76,0.06)", padding: "1rem 0.5rem", display: "flex", flexDirection: "column", gap: "4px" }}>
+        <button onClick={() => { setDrawerOpen(false); setShowReset(true); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-semibold transition-all" style={{ color: "#ef4444", border: "1px solid rgba(239,68,68,0.25)", borderRadius: "6px", fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "0.06em", textTransform: "uppercase", background: "rgba(239,68,68,0.06)" }}><Trash2 size={17} />Clear Data</button>
         <button onClick={onLogout} className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-semibold transition-all" style={{ color: "#78716c", border: "1px solid transparent", borderRadius: "6px", fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "0.06em", textTransform: "uppercase" }}><LogOut size={17} />Logout</button>
       </div>
-    </>
+    </div>
   );
 
   return (
