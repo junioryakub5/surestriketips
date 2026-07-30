@@ -365,7 +365,7 @@ function NigeriaPaymentModal({
         tx_ref: reference,
         amount: initResult.amount,
         currency: "NGN",
-        payment_options: "card,banktransfer,ussd",
+        payment_options: "account",
         customer: { email: email.toLowerCase().trim() },
         customizations: {
           title: "SureStrikeTips",

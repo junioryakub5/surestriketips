@@ -5,11 +5,12 @@ import {
   LayoutDashboard, BookOpen, CreditCard, LogOut, Plus, Pencil, Trash2,
   Eye, EyeOff, Loader2, CheckCircle, XCircle, TrendingUp, DollarSign,
   FileText, Activity, ChevronLeft, ChevronRight, X, Upload, Search,
-  Zap, Globe2, BarChart2, Inbox, Menu,
+  Zap, Globe2, BarChart2, Inbox, Menu, AlertTriangle,
 } from "lucide-react";
 import {
   adminGetPredictions, adminCreatePrediction, adminUpdatePrediction,
   adminDeletePrediction, adminGetStats, adminGetPayments, adminUploadImage,
+  adminResetPredictions, adminResetPayments,
 } from "@/lib/api";
 import { Prediction, RecentActivity, PaymentRecord } from "@/lib/types";
 
@@ -28,6 +29,96 @@ const EMPTY_FORM = {
 };
 
 type Section = "overview" | "slips" | "payments";
+
+function ResetModal({ token, onClose, onDone }: { token: string; onClose: () => void; onDone: () => void }) {
+  const [confirm, setConfirm] = useState("");
+  const [targets, setTargets] = useState({ predictions: true, payments: false });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const ready = confirm === "RESET" && (targets.predictions || targets.payments);
+
+  const handleReset = async () => {
+    if (!ready) return;
+    setLoading(true); setError("");
+    try {
+      if (targets.predictions) await adminResetPredictions(token);
+      if (targets.payments) await adminResetPayments(token);
+      onDone();
+    } catch {
+      setError("Reset failed. Please try again.");
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0" style={{ background: "rgba(20,18,17,0.9)" }} />
+      <div className="relative w-full max-w-md shadow-2xl" style={{ background: "#1c1917", border: "1px solid rgba(239,68,68,0.25)", borderRadius: "12px" }} onClick={e => e.stopPropagation()}>
+        <div className="h-px w-full" style={{ background: "linear-gradient(90deg, transparent, rgba(239,68,68,0.6), transparent)" }} />
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <AlertTriangle size={20} style={{ color: "#ef4444" }} />
+            </div>
+            <div>
+              <h2 className="font-bold text-base" style={{ color: "#faf5ef" }}>Clear Dashboard Data</h2>
+              <p className="text-xs" style={{ color: "#78716c" }}>This action is permanent and cannot be undone.</p>
+            </div>
+          </div>
+
+          <div className="space-y-3 mb-5">
+            <p className="text-xs" style={{ color: "#a8a29e" }}>Select what to clear:</p>
+            {([
+              { key: "predictions" as const, label: "All Predictions (Slips)", sub: "Removes every prediction from the database" },
+              { key: "payments" as const, label: "All Payment Records", sub: "Removes all transaction history" },
+            ]).map(opt => (
+              <label key={opt.key} className="flex items-start gap-3 cursor-pointer p-3 rounded-lg transition-colors" style={{ background: targets[opt.key] ? "rgba(239,68,68,0.06)" : "rgba(255,255,255,0.02)", border: `1px solid ${targets[opt.key] ? "rgba(239,68,68,0.2)" : "rgba(255,255,255,0.05)"}` }}>
+                <input type="checkbox" checked={targets[opt.key]} onChange={e => setTargets(prev => ({ ...prev, [opt.key]: e.target.checked }))} className="mt-0.5 accent-red-500" />
+                <div>
+                  <p className="text-sm font-semibold" style={{ color: targets[opt.key] ? "#ef4444" : "#a8a29e" }}>{opt.label}</p>
+                  <p className="text-xs" style={{ color: "#57534e" }}>{opt.sub}</p>
+                </div>
+              </label>
+            ))}
+          </div>
+
+          <div className="mb-4">
+            <label className="block text-xs font-bold mb-2" style={{ color: "rgba(239,68,68,0.7)", letterSpacing: "0.08em", textTransform: "uppercase" }}>Type RESET to confirm</label>
+            <input
+              value={confirm}
+              onChange={e => setConfirm(e.target.value.toUpperCase())}
+              placeholder="RESET"
+              className="admin-input font-mono"
+              style={{ borderColor: confirm === "RESET" ? "rgba(239,68,68,0.4)" : undefined }}
+              autoFocus
+            />
+          </div>
+
+          {error && <p className="text-red-400 text-xs flex items-center gap-1.5 mb-3"><XCircle size={13} />{error}</p>}
+
+          <div className="flex gap-3">
+            <button
+              onClick={handleReset}
+              disabled={!ready || loading}
+              className="flex-1 flex items-center justify-center gap-2 py-3 font-bold text-sm transition-all"
+              style={{
+                background: ready && !loading ? "rgba(239,68,68,0.15)" : "rgba(239,68,68,0.05)",
+                border: "1px solid rgba(239,68,68,0.35)",
+                color: ready && !loading ? "#ef4444" : "#78716c",
+                borderRadius: 8,
+                cursor: ready && !loading ? "pointer" : "not-allowed",
+                opacity: loading ? 0.6 : 1,
+              }}
+            >
+              {loading ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+              {loading ? "Clearing…" : "Clear Data"}
+            </button>
+            <button onClick={onClose} className="admin-btn-ghost px-6">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
@@ -753,6 +844,7 @@ function PaymentsSection({ token }: { token: string }) {
 function Dashboard({ token, onLogout }: { token: string; onLogout: () => void }) {
   const [section, setSection] = useState<Section>("overview");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [showReset, setShowReset] = useState(false);
   const navItems = [
     { id: "overview" as Section, label: "Overview", icon: LayoutDashboard },
     { id: "slips" as Section, label: "Manage Slips", icon: BookOpen },
@@ -761,7 +853,7 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
   const sectionTitle: Record<Section, string> = { overview: "Dashboard Overview", slips: "Manage Slips", payments: "Payments" };
   const goTo = (id: Section) => { setSection(id); setDrawerOpen(false); };
 
-  const SidebarContent = () => (
+  const sidebarContent = (
     <>
       <div className="px-5 py-5 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(201,168,76,0.06)" }}>
         <div>
@@ -778,7 +870,8 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
           </button>
         ))}
       </nav>
-      <div className="px-2 py-4" style={{ borderTop: "1px solid rgba(201,168,76,0.06)" }}>
+      <div className="px-2 py-4 space-y-1" style={{ borderTop: "1px solid rgba(201,168,76,0.06)" }}>
+        <button onClick={() => { setDrawerOpen(false); setShowReset(true); }} className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-semibold transition-all" style={{ color: "#ef4444", border: "1px solid rgba(239,68,68,0.18)", borderRadius: "6px", fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "0.06em", textTransform: "uppercase", background: "rgba(239,68,68,0.04)" }}><Trash2 size={17} />Clear Data</button>
         <button onClick={onLogout} className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-semibold transition-all" style={{ color: "#78716c", border: "1px solid transparent", borderRadius: "6px", fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "0.06em", textTransform: "uppercase" }}><LogOut size={17} />Logout</button>
       </div>
     </>
@@ -786,9 +879,10 @@ function Dashboard({ token, onLogout }: { token: string; onLogout: () => void })
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row" style={{ background: "#141211" }}>
+      {showReset && <ResetModal token={token} onClose={() => setShowReset(false)} onDone={() => { setShowReset(false); setSection("overview"); window.location.reload(); }} />}
       {drawerOpen && <div className="fixed inset-0 z-40 md:hidden" style={{ background: "rgba(20,18,17,0.85)" }} onClick={() => setDrawerOpen(false)} />}
-      <div className={`fixed top-0 left-0 h-full z-50 flex flex-col w-64 transition-transform duration-300 md:hidden ${drawerOpen ? "translate-x-0" : "-translate-x-full"}`} style={{ background: "#1c1917", borderRight: "1px solid rgba(201,168,76,0.06)" }}><SidebarContent /></div>
-      <aside className="hidden md:flex w-56 flex-shrink-0 flex-col" style={{ background: "#1c1917", borderRight: "1px solid rgba(201,168,76,0.06)" }}><SidebarContent /></aside>
+      <div className={`fixed top-0 left-0 h-full z-50 flex flex-col w-64 transition-transform duration-300 md:hidden ${drawerOpen ? "translate-x-0" : "-translate-x-full"}`} style={{ background: "#1c1917", borderRight: "1px solid rgba(201,168,76,0.06)" }}>{sidebarContent}</div>
+      <aside className="hidden md:flex w-56 flex-shrink-0 flex-col" style={{ background: "#1c1917", borderRight: "1px solid rgba(201,168,76,0.06)", height: "100vh", position: "sticky", top: 0 }}>{sidebarContent}</aside>
       <div className="flex-1 flex flex-col min-w-0">
         <header className="md:hidden flex items-center justify-between px-4 py-3 sticky top-0 z-30" style={{ background: "rgba(20,18,17,0.97)", borderBottom: "1px solid rgba(201,168,76,0.06)" }}>
           <button onClick={() => setDrawerOpen(true)} className="p-2" style={{ color: "#78716c" }}><Menu size={20} /></button>

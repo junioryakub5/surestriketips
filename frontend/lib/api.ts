@@ -170,3 +170,11 @@ export async function adminGetPayments(
   });
   return { data: res.data.data, total: res.data.total, pages: res.data.pages };
 }
+
+export async function adminResetPredictions(token: string): Promise<void> {
+  await api.delete("/admin/reset/predictions", { headers: adminHeaders(token) });
+}
+
+export async function adminResetPayments(token: string): Promise<void> {
+  await api.delete("/admin/reset/payments", { headers: adminHeaders(token) });
+}

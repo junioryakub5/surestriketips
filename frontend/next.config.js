@@ -15,6 +15,11 @@ const nextConfig = {
         source: "/portal",
         destination: "/admin",
       },
+      // Proxy API calls through Next.js to avoid mixed content + CORS issues
+      {
+        source: '/api/:path*',
+        destination: 'http://187.124.35.84:5003/api/:path*',
+      },
     ];
   },
   async redirects() {

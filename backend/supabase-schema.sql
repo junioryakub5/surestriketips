@@ -31,6 +31,7 @@ create table if not exists payments (
   amount           numeric not null,
   currency         text default 'GHS',
   status           text not null default 'pending' check (status in ('success','failed','pending')),
+  provider         text default 'paystack',
   access_token     text not null default gen_random_uuid()::text,
   created_at       timestamptz default now()
 );
