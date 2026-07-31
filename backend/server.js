@@ -946,12 +946,13 @@ app.get('/api/admin/stats', adminAuth, async (req, res) => {
 app.delete('/api/admin/reset/predictions', adminAuth, async (req, res) => {
   try {
     if (supabase) {
-      // Nullify prediction_id on all payments first (preserve payment records)
-      await supabase.from('payments').update({ prediction_id: null }).neq('prediction_id', null);
+      // Delete all payments first to remove FK references, then delete predictions
+      await supabase.from('payments').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       const { error } = await supabase.from('predictions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       if (error) throw error;
     } else {
       memPredictions.length = 0;
+      memPayments.length = 0;
     }
     res.json({ success: true, message: 'All predictions deleted' });
   } catch (err) { safeError(res, 500, 'Failed to reset predictions', err); }
