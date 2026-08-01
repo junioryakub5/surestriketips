@@ -1,12 +1,13 @@
 require('dotenv').config();
-const express   = require('express');
-const cors      = require('cors');
-const helmet    = require('helmet');
-const rateLimit = require('express-rate-limit');
-const crypto    = require('crypto');
+const express    = require('express');
+const cors       = require('cors');
+const helmet     = require('helmet');
+const rateLimit  = require('express-rate-limit');
+const crypto     = require('crypto');
 const { v4: uuidv4 } = require('uuid');
-const axios     = require('axios');
-const multer    = require('multer');
+const axios      = require('axios');
+const multer     = require('multer');
+const nodemailer = require('nodemailer');
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 const app  = express();
@@ -88,6 +89,180 @@ const adminAuth = (req, res, next) => {
   if (!token || token !== ADMIN_TOKEN) return res.status(401).json({ error: 'Unauthorized' });
   next();
 };
+
+// ─── Email (Nodemailer / Gmail SMTP) ─────────────────────────────────────────
+let mailer = null;
+if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
+  mailer = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_APP_PASSWORD,
+    },
+  });
+  mailer.verify(err => {
+    if (err) console.error('❌ Gmail SMTP error:', err.message);
+    else     console.log('✅ Gmail SMTP ready — emails enabled');
+  });
+} else {
+  console.log('📧 Email disabled — set GMAIL_USER + GMAIL_APP_PASSWORD to enable');
+}
+
+function buildEmailHtml(prediction, reference, currency, amount) {
+  const tips = Array.isArray(prediction.tips) ? prediction.tips : [];
+  const tipsHtml = tips.length
+    ? tips.map(t => `<li style="margin:6px 0;color:#e2e8f0;">${t}</li>`).join('')
+    : '<li style="color:#64748b;">—</li>';
+
+  const categoryColors = {
+    '2+':  { text: '#D4A017', bg: 'rgba(212,160,23,0.15)', border: '#D4A017' },
+    '5+':  { text: '#F5C842', bg: 'rgba(245,200,66,0.15)', border: '#F5C842' },
+    '10+': { text: '#E8E8E8', bg: 'rgba(232,232,232,0.1)',  border: '#E8E8E8' },
+    '20+': { text: '#ff6b6b', bg: 'rgba(255,107,107,0.15)', border: '#ff6b6b' },
+  };
+  const cat = categoryColors[prediction.oddsCategory] || categoryColors['2+'];
+  const displayAmount = currency === 'NGN' ? `₦${Number(amount).toLocaleString()}` : `GHS ${amount}`;
+
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Your SureStrikeTips Prediction</title></head>
+<body style="margin:0;padding:0;background:#0a0a0a;font-family:'Segoe UI',Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;padding:40px 16px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#111111;border-radius:20px;overflow:hidden;border:1px solid rgba(212,160,23,0.2);">
+
+        <!-- Gold top bar -->
+        <tr><td style="height:4px;background:linear-gradient(90deg,#D4A017,#F5C842,#D4A017);"></td></tr>
+
+        <!-- Header -->
+        <tr><td style="padding:32px 36px 24px;border-bottom:1px solid rgba(255,255,255,0.06);">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td>
+                <p style="margin:0 0 4px;font-size:22px;font-weight:800;color:#D4A017;letter-spacing:-0.5px;">⚽ SureStrikeTips</p>
+                <p style="margin:0;font-size:13px;color:#555;">Premium Football Predictions</p>
+              </td>
+              <td align="right">
+                <span style="display:inline-block;padding:6px 14px;background:rgba(34,197,94,0.12);color:#22c55e;border:1px solid rgba(34,197,94,0.3);border-radius:50px;font-size:12px;font-weight:700;letter-spacing:1px;">🔓 UNLOCKED</span>
+              </td>
+            </tr>
+          </table>
+        </td></tr>
+
+        <!-- Match info -->
+        <tr><td style="padding:28px 36px 0;">
+          <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#555;letter-spacing:2px;text-transform:uppercase;">Your Prediction</p>
+          <h1 style="margin:0 0 12px;font-size:22px;font-weight:800;color:#f5f5f5;line-height:1.3;">${prediction.match || 'Prediction'}</h1>
+          <table cellpadding="0" cellspacing="0"><tr>
+            <td style="padding-right:12px;">
+              <span style="display:inline-block;padding:4px 12px;background:${cat.bg};color:${cat.text};border:1px solid ${cat.border};border-radius:8px;font-size:11px;font-weight:800;letter-spacing:1.5px;">${prediction.oddsCategory || '—'} ODDS</span>
+            </td>
+            ${prediction.league ? `<td><span style="font-size:12px;color:#64748b;">${prediction.league}</span></td>` : ''}
+            ${prediction.odds ? `<td style="padding-left:12px;"><span style="font-size:13px;font-weight:700;color:${cat.text};">@${prediction.odds}</span></td>` : ''}
+          </tr></table>
+        </td></tr>
+
+        ${prediction.bookingCode ? `
+        <!-- Booking code -->
+        <tr><td style="padding:24px 36px 0;">
+          <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#555;letter-spacing:2px;text-transform:uppercase;">Booking / Bet Code</p>
+          <div style="background:rgba(212,160,23,0.08);border:1px solid rgba(212,160,23,0.25);border-radius:12px;padding:16px 20px;">
+            <p style="margin:0;font-size:22px;font-weight:800;color:#D4A017;letter-spacing:3px;font-family:monospace;">${prediction.bookingCode}</p>
+          </div>
+        </td></tr>` : ''}
+
+        ${tips.length ? `
+        <!-- Tips -->
+        <tr><td style="padding:24px 36px 0;">
+          <p style="margin:0 0 10px;font-size:11px;font-weight:700;color:#555;letter-spacing:2px;text-transform:uppercase;">Tips</p>
+          <ul style="margin:0;padding-left:20px;">${tipsHtml}</ul>
+        </td></tr>` : ''}
+
+        ${prediction.content ? `
+        <!-- Content -->
+        <tr><td style="padding:20px 36px 0;">
+          <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#555;letter-spacing:2px;text-transform:uppercase;">Analysis</p>
+          <p style="margin:0;font-size:14px;color:#94a3b8;line-height:1.7;">${prediction.content}</p>
+        </td></tr>` : ''}
+
+        <!-- Bet slip image -->
+        ${prediction.imageUrl ? `
+        <tr><td style="padding:24px 36px 0;">
+          <p style="margin:0 0 10px;font-size:11px;font-weight:700;color:#555;letter-spacing:2px;text-transform:uppercase;">Bet Slip</p>
+          <img src="cid:betslip" alt="Bet Slip" style="width:100%;max-width:528px;border-radius:12px;border:1px solid rgba(255,255,255,0.06);display:block;" />
+        </td></tr>` : ''}
+
+        <!-- Payment info -->
+        <tr><td style="padding:28px 36px;">
+          <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px 20px;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="font-size:12px;color:#555;">Amount paid</td>
+                <td align="right" style="font-size:13px;font-weight:700;color:#22c55e;">${displayAmount}</td>
+              </tr>
+              <tr><td colspan="2" style="height:8px;"></td></tr>
+              <tr>
+                <td style="font-size:12px;color:#555;">Reference</td>
+                <td align="right" style="font-size:11px;color:#475569;font-family:monospace;">${reference}</td>
+              </tr>
+            </table>
+          </div>
+        </td></tr>
+
+        <!-- Footer -->
+        <tr><td style="padding:0 36px 32px;border-top:1px solid rgba(255,255,255,0.05);">
+          <p style="margin:20px 0 6px;font-size:12px;color:#334155;text-align:center;">Keep this email for your records. Need help? Contact us at <span style="color:#D4A017;">${process.env.GMAIL_USER || 'support@surestriketips.com'}</span></p>
+          <p style="margin:0;font-size:11px;color:#1e293b;text-align:center;">⚠️ Bet responsibly. 18+ only. Predictions are for informational purposes.</p>
+        </td></tr>
+
+        <!-- Bottom gold bar -->
+        <tr><td style="height:3px;background:linear-gradient(90deg,#D4A017,#F5C842,#D4A017);"></td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+async function sendPredictionEmail(email, prediction, reference, currency, amount) {
+  if (!mailer) return; // email disabled — skip silently
+  try {
+    const subject = `🔓 Your SureStrikeTips Prediction — ${prediction.match || 'Unlocked'}`;
+    const html    = buildEmailHtml(prediction, reference, currency, amount);
+
+    const mailOptions = {
+      from: `"${process.env.EMAIL_FROM_NAME || 'SureStrikeTips'}" <${process.env.GMAIL_USER}>`,
+      to:   email,
+      subject,
+      html,
+      attachments: [],
+    };
+
+    // Attach bet slip image inline if available
+    if (prediction.imageUrl) {
+      try {
+        const imgRes = await axios.get(prediction.imageUrl, { responseType: 'arraybuffer', timeout: 10000 });
+        const contentType = imgRes.headers['content-type'] || 'image/jpeg';
+        mailOptions.attachments.push({
+          filename:    'betslip.jpg',
+          content:     Buffer.from(imgRes.data),
+          contentType,
+          cid:         'betslip',
+        });
+      } catch (imgErr) {
+        console.warn('Email: could not fetch bet slip image —', imgErr.message);
+      }
+    }
+
+    await mailer.sendMail(mailOptions);
+    console.log(`📧 Prediction email sent → ${email} (ref: ${reference})`);
+  } catch (err) {
+    // Non-blocking — never let email failure affect the payment response
+    console.error('📧 Email send failed:', err.message);
+  }
+}
 
 // ─── Supabase (optional) ──────────────────────────────────────────────────────
 let supabase = null;
@@ -598,6 +773,12 @@ app.post('/api/payment/verify', paymentLimiter, async (req, res) => {
 
     console.log('Payment verified OK — ref:', reference, 'amount:', txn.amount/100);
     res.json({ success:true, reference, accessToken });
+
+    // Send prediction email (non-blocking — after response is sent)
+    sendPredictionEmail(
+      (email||txn.customer?.email||'').toLowerCase().trim(),
+      prediction, reference, txn.currency||'GHS', txn.amount/100
+    );
   } catch (err) {
     console.error('Verify route error:', err.message);
     safeError(res, 500, 'Payment verification failed', err);
@@ -669,6 +850,12 @@ app.post('/api/payment/webhook', async (req, res) => {
       });
 
       console.log('Webhook: payment recorded — ref:', reference);
+
+      // Send prediction email (non-blocking)
+      sendPredictionEmail(
+        (txn.customer?.email||'').toLowerCase().trim(),
+        prediction, reference, txn.currency||'GHS', txn.amount/100
+      );
     }
 
     res.sendStatus(200);
@@ -740,6 +927,12 @@ app.post('/api/payment/flw/verify', paymentLimiter, async (req, res) => {
 
     console.log('FLW payment recorded — ref:', reference, 'amount:', paidAmount || expectedNGN, currency || 'NGN', '| txn_id:', transaction_id);
     res.json({ success:true, reference, accessToken });
+
+    // Send prediction email (non-blocking — after response is sent)
+    sendPredictionEmail(
+      (email || '').toLowerCase().trim(),
+      prediction, reference, currency || 'NGN', paidAmount || expectedNGN
+    );
   } catch (err) {
     console.error('FLW verify error:', err.message);
     safeError(res, 500, 'Flutterwave verification failed', err);
@@ -789,6 +982,12 @@ app.post('/api/payment/flw/webhook', async (req, res) => {
         status: 'success', accessToken, provider: 'flutterwave',
       });
       console.log('FLW Webhook: payment recorded — ref:', reference);
+
+      // Send prediction email (non-blocking)
+      sendPredictionEmail(
+        (txn.customer?.email || '').toLowerCase().trim(),
+        prediction, reference, txn.currency || 'NGN', txn.amount
+      );
     }
 
     res.sendStatus(200);
