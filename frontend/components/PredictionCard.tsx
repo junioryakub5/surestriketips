@@ -304,7 +304,14 @@ function NigeriaPaymentModal({
   const ngn = Math.round(prediction.price * GHS_TO_NGN);
   const [email, setEmail] = useState("");
   const [step, setStep] = useState<"idle" | "paying" | "verifying">("idle");
+  const stepRef = React.useRef<"idle" | "paying" | "verifying">("idle");
   const [error, setError] = useState("");
+
+  // Keep stepRef in sync so onclose callback reads current value (not stale closure)
+  const updateStep = (s: "idle" | "paying" | "verifying") => {
+    stepRef.current = s;
+    setStep(s);
+  };
 
   useEffect(() => {
     const scrollY = window.scrollY;
@@ -325,7 +332,7 @@ function NigeriaPaymentModal({
   }, []);
 
   const finalizeUnlock = async (reference: string) => {
-    setStep("verifying");
+    updateStep("verifying");
     setError("");
     try {
       const unlock = await getUnlockedPrediction(reference);
@@ -343,7 +350,7 @@ function NigeriaPaymentModal({
         (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
         "Verification failed. Please contact support.";
       setError(`${msg} (ref: ${reference})`);
-      setStep("idle");
+      updateStep("idle");
     }
   };
 
@@ -353,7 +360,7 @@ function NigeriaPaymentModal({
       return;
     }
     setError("");
-    setStep("paying");
+    updateStep("paying");
     try {
       await loadFlutterwave();
       const initResult = await flwInitiatePayment(email, prediction._id);
@@ -375,6 +382,7 @@ function NigeriaPaymentModal({
         callback: async (response: { status: string; tx_ref: string; transaction_id: string | number; amount?: number; currency?: string }) => {
           if (response.status === "successful" || response.status === "completed") {
             try {
+              updateStep("verifying");
               await flwVerifyPayment(reference, prediction._id, email, response.transaction_id, response.amount, response.currency);
               await finalizeUnlock(reference);
             } catch (err: unknown) {
@@ -382,21 +390,22 @@ function NigeriaPaymentModal({
                 (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
                 "Verification failed. Contact support.";
               setError(`${msg} (ref: ${reference})`);
-              setStep("idle");
+              updateStep("idle");
             }
           } else {
             setError("Payment was not completed. Please try again.");
-            setStep("idle");
+            updateStep("idle");
           }
         },
+        // FLW fires onclose after callback — only reset if we are NOT verifying/done
         onclose: () => {
-          if (step === "paying") setStep("idle");
+          if (stepRef.current === "paying") updateStep("idle");
         },
       });
     } catch (err: unknown) {
       const msg = (err as Error)?.message || "Failed to open payment. Please try again.";
       setError(msg);
-      setStep("idle");
+      updateStep("idle");
     }
   };
 
