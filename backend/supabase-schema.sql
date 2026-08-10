@@ -49,3 +49,12 @@ create index if not exists idx_payments_access_token on payments(access_token);
 alter table payments
   add column if not exists provider text not null default 'paystack'
     check (provider in ('paystack','flutterwave'));
+
+-- ─── Migration: add slot column for 50/50 payment splitting ──────────────────
+-- slot = 1 → visible on admin dashboard (partner A)
+-- slot = 2 → hidden from admin dashboard but fully accessible by clients (partner B)
+alter table payments
+  add column if not exists slot integer not null default 1
+    check (slot in (1, 2));
+
+create index if not exists idx_payments_slot on payments(slot);

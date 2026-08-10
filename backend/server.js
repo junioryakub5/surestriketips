@@ -318,7 +318,7 @@ const toP = r => r ? ({ _id:r.id, match:r.match, league:r.league, odds:r.odds,
 const toMoney = r => r ? ({ _id:r.id, predictionId:r.prediction_id, predictionTitle:r.prediction_title,
   reference:r.reference, email:r.email, amount:r.amount, currency:r.currency,
   status:r.status, accessToken:r.access_token, createdAt:r.created_at,
-  provider:r.provider||'paystack' }) : null;
+  provider:r.provider||'paystack', slot:r.slot??1 }) : null;
 
 // ─── DB helpers (Supabase or in-memory) ──────────────────────────────────────
 const db = {
@@ -407,7 +407,8 @@ const db = {
     if (supabase) {
       const [{ data, error }, { data: paymentCounts }] = await Promise.all([
         supabase.from('predictions').select('*').order('created_at', { ascending: false }),
-        supabase.from('payments').select('prediction_id').eq('status', 'success'),
+        // Only count slot 1 payments for purchase counts shown in admin
+        supabase.from('payments').select('prediction_id').eq('status', 'success').eq('slot', 1),
       ]);
       if (error) throw error;
       // Build a map of predictionId -> count
@@ -418,7 +419,8 @@ const db = {
       return data.map(r => ({ ...toP(r), purchaseCount: countMap[r.id] || 0 }));
     }
     const countMap = {};
-    memPayments.filter(p => p.status === 'success').forEach(p => {
+    // Only count slot 1 payments for purchase counts shown in admin
+    memPayments.filter(p => p.status === 'success' && (p.slot ?? 1) === 1).forEach(p => {
       if (p.predictionId) countMap[p.predictionId] = (countMap[p.predictionId] || 0) + 1;
     });
     return [...memPredictions]
@@ -446,6 +448,7 @@ const db = {
         amount:data.amount, currency:data.currency||'GHS',
         status:data.status, access_token:data.accessToken||uuidv4(),
         provider:data.provider||'paystack',
+        slot:data.slot??1,
       };
       const { data: d, error } = await supabase.from('payments').insert(payload).select().single();
       if (error) {
@@ -460,19 +463,21 @@ const db = {
       }
       return toMoney(d);
     }
-    const p = { _id:uuidv4(), ...data, createdAt:new Date().toISOString() };
+    const p = { _id:uuidv4(), ...data, slot:data.slot??1, createdAt:new Date().toISOString() };
     memPayments.unshift(p); return p;
   },
   async allPayments(page=1, limit=20) {
     if (supabase) {
       const from = (page-1)*limit;
+      // Admin view: only show slot 1 payments
       const { data, count, error } = await supabase.from('payments')
-        .select('*', { count:'exact' }).eq('status','success')
+        .select('*', { count:'exact' }).eq('status','success').eq('slot', 1)
         .order('created_at', { ascending:false }).range(from, from+limit-1);
       if (error) throw error;
       return { data:data.map(toMoney), total:count };
     }
-    const success = memPayments.filter(p => p.status==='success');
+    // Admin view: only show slot 1 payments
+    const success = memPayments.filter(p => p.status==='success' && (p.slot??1)===1);
     return { data:success.slice((page-1)*limit, page*limit), total:success.length };
   },
   async stats() {
@@ -503,16 +508,18 @@ const db = {
         supabase.from('predictions').select('*',{count:'exact',head:true}),
         supabase.from('predictions').select('*',{count:'exact',head:true}).eq('status','active'),
         supabase.from('predictions').select('*',{count:'exact',head:true}).eq('status','completed'),
-        supabase.from('payments').select('*',{count:'exact',head:true}).eq('status','success'),
-        // All-time: fetch amount + currency + provider for total revenue breakdown
-        supabase.from('payments').select('amount,currency,provider').eq('status','success').limit(100000),
-        // Today rows — DB-side filter
-        supabase.from('payments').select('amount,currency,provider').eq('status','success').gte('created_at', todayISO),
-        // Week rows — DB-side filter
-        supabase.from('payments').select('amount,currency,provider').eq('status','success').gte('created_at', weekISO),
-        // Month rows — DB-side filter
-        supabase.from('payments').select('amount,currency,provider').eq('status','success').gte('created_at', monthISO),
-        supabase.from('payments').select('*').eq('status','success')
+        // Admin stats: only count slot 1 payments
+        supabase.from('payments').select('*',{count:'exact',head:true}).eq('status','success').eq('slot',1),
+        // All-time: fetch amount + currency + provider for total revenue — slot 1 only
+        supabase.from('payments').select('amount,currency,provider').eq('status','success').eq('slot',1).limit(100000),
+        // Today rows — DB-side filter, slot 1 only
+        supabase.from('payments').select('amount,currency,provider').eq('status','success').eq('slot',1).gte('created_at', todayISO),
+        // Week rows — DB-side filter, slot 1 only
+        supabase.from('payments').select('amount,currency,provider').eq('status','success').eq('slot',1).gte('created_at', weekISO),
+        // Month rows — DB-side filter, slot 1 only
+        supabase.from('payments').select('amount,currency,provider').eq('status','success').eq('slot',1).gte('created_at', monthISO),
+        // Recent activity — slot 1 only
+        supabase.from('payments').select('*').eq('status','success').eq('slot',1)
           .order('created_at',{ascending:false}).limit(20),
         supabase.from('predictions').select('*',{count:'exact',head:true}).eq('status','completed').eq('result','win'),
         supabase.from('predictions').select('*',{count:'exact',head:true}).eq('status','completed').eq('result','loss'),
@@ -557,7 +564,8 @@ const db = {
     }
 
     // ── In-memory fallback ───────────────────────────────────────────────────
-    const payments = memPayments.filter(p => p.status==='success');
+    // Admin stats: only count slot 1 payments
+    const payments = memPayments.filter(p => p.status==='success' && (p.slot??1)===1);
 
     const inRange = (p, start) => new Date(p.createdAt) >= start;
     const isGhana = p => (p.provider||'paystack') === 'paystack';
@@ -603,6 +611,29 @@ const db = {
     };
   },
 };
+
+// ─── Helper: get next slot for 50/50 payment splitting ───────────────────────
+// Queries the last successful payment's slot and returns the opposite.
+// If no payments exist yet, returns 1 (first payment always goes to slot 1).
+async function getNextSlot() {
+  if (supabase) {
+    const { data } = await supabase
+      .from('payments')
+      .select('slot')
+      .eq('status', 'success')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const lastSlot = data?.slot ?? null;
+    // null → no payments yet → start at 1; 1 → next is 2; 2 → next is 1
+    return lastSlot === 1 ? 2 : 1;
+  }
+  // In-memory fallback
+  const successPayments = memPayments.filter(p => p.status === 'success');
+  if (!successPayments.length) return 1;
+  const lastSlot = successPayments[0].slot ?? 1;
+  return lastSlot === 1 ? 2 : 1;
+}
 
 // ─── Helper: safe error response (never leak internals) ──────────────────────
 function safeError(res, statusCode, fallbackMsg, err) {
@@ -752,12 +783,13 @@ app.post('/api/payment/verify', paymentLimiter, async (req, res) => {
     }
 
     const accessToken = uuidv4();
+    const slot = await getNextSlot();
     try {
       await db.createPayment({
         predictionId, predictionTitle:prediction.match, reference,
         email:(email||txn.customer?.email||'').toLowerCase().trim(),
         amount:txn.amount/100, currency:txn.currency||'GHS',
-        status:'success', accessToken,
+        status:'success', accessToken, slot,
       });
     } catch (insertErr) {
       // Race condition: another request already inserted this reference
@@ -842,14 +874,15 @@ app.post('/api/payment/webhook', async (req, res) => {
       }
 
       const accessToken = uuidv4();
+      const slot = await getNextSlot();
       await db.createPayment({
         predictionId, predictionTitle:prediction.match, reference,
         email:(txn.customer?.email||'').toLowerCase().trim(),
         amount:txn.amount/100, currency:txn.currency||'GHS',
-        status:'success', accessToken,
+        status:'success', accessToken, slot,
       });
 
-      console.log('Webhook: payment recorded — ref:', reference);
+      console.log('Webhook: payment recorded — ref:', reference, '| slot:', slot);
 
       // Send prediction email (non-blocking)
       sendPredictionEmail(
@@ -909,12 +942,13 @@ app.post('/api/payment/flw/verify', paymentLimiter, async (req, res) => {
     }
 
     const accessToken = uuidv4();
+    const slot = await getNextSlot();
     try {
       await db.createPayment({
         predictionId, predictionTitle: prediction.match, reference,
         email: (email || '').toLowerCase().trim(),
         amount: paidAmount || expectedNGN, currency: currency || 'NGN',
-        status: 'success', accessToken, provider: 'flutterwave',
+        status: 'success', accessToken, provider: 'flutterwave', slot,
         meta: { transaction_id },
       });
     } catch (insertErr) {
@@ -925,7 +959,7 @@ app.post('/api/payment/flw/verify', paymentLimiter, async (req, res) => {
       throw insertErr;
     }
 
-    console.log('FLW payment recorded — ref:', reference, 'amount:', paidAmount || expectedNGN, currency || 'NGN', '| txn_id:', transaction_id);
+    console.log('FLW payment recorded — ref:', reference, 'amount:', paidAmount || expectedNGN, currency || 'NGN', '| txn_id:', transaction_id, '| slot:', slot);
     res.json({ success:true, reference, accessToken });
 
     // Send prediction email (non-blocking — after response is sent)
@@ -975,13 +1009,14 @@ app.post('/api/payment/flw/webhook', async (req, res) => {
       }
 
       const accessToken = uuidv4();
+      const slot = await getNextSlot();
       await db.createPayment({
         predictionId, predictionTitle: prediction.match, reference,
         email: (txn.customer?.email || '').toLowerCase().trim(),
         amount: txn.amount, currency: txn.currency || 'NGN',
-        status: 'success', accessToken, provider: 'flutterwave',
+        status: 'success', accessToken, provider: 'flutterwave', slot,
       });
-      console.log('FLW Webhook: payment recorded — ref:', reference);
+      console.log('FLW Webhook: payment recorded — ref:', reference, '| slot:', slot);
 
       // Send prediction email (non-blocking)
       sendPredictionEmail(
