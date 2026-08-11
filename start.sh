@@ -9,7 +9,7 @@ export PATH=/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:$PATH
 BACKEND_DIR="$(cd "$(dirname "$0")/backend" && pwd)"
 FRONTEND_DIR="$(cd "$(dirname "$0")/frontend" && pwd)"
 ENV_LOCAL="$FRONTEND_DIR/.env.local"
-PAYSTACK_KEY="pk_live_1bea543508e721092150d2fbb79ff78a3cc070a6"
+PAYSTACK_KEY="pk_live_4ba3f755553d08d499f72b21e4690fd4b1bcb78b"
 
 echo ""
 echo "🔥 SureStrikeTips — Starting up..."

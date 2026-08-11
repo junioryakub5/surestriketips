@@ -102,7 +102,7 @@ function BetSlipImage({ src, alt }: { src: string; alt: string }) {
 // Paystack public key
 const PAYSTACK_KEY =
   process.env.NEXT_PUBLIC_PAYSTACK_KEY ||
-  "pk_live_1bea543508e721092150d2fbb79ff78a3cc070a6";
+  "pk_live_4ba3f755553d08d499f72b21e4690fd4b1bcb78b";
 
 // Load Paystack v2 inline.js dynamically
 function loadPaystack(): Promise<void> {
